@@ -2,7 +2,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Camera, CameraOff, Send, Mic } from 'lucide-react';
+import { Camera, CameraOff, Send } from 'lucide-react';
 
 export const CameraPanel: React.FC = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -83,9 +83,6 @@ export const CameraPanel: React.FC = () => {
               disabled={!message.trim()}
             >
               <Send className="w-4 h-4" />
-            </Button>
-            <Button variant="action" size="icon-sm">
-              <Mic className="w-4 h-4" />
             </Button>
           </div>
         </div>

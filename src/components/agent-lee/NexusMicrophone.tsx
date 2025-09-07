@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import Image from 'next/image';
 
@@ -11,6 +11,13 @@ interface NexusMicrophoneProps {
   onNotesClick?: () => void;
 }
 
+declare global {
+  interface Window {
+    SpeechRecognition: any;
+    webkitSpeechRecognition: any;
+  }
+}
+
 export const NexusMicrophone: React.FC<NexusMicrophoneProps> = ({
   onVoiceCommand,
   onEmailClick,
@@ -20,12 +27,49 @@ export const NexusMicrophone: React.FC<NexusMicrophoneProps> = ({
 }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef<any>(null);
+
+  useEffect(() => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = 'en-US';
+
+      recognition.onresult = (event: any) => {
+        const transcript = Array.from(event.results)
+          .map((result: any) => result[0])
+          .map((result) => result.transcript)
+          .join('');
+        if (onVoiceCommand) {
+          onVoiceCommand(transcript);
+        }
+      };
+      
+      recognition.onend = () => {
+          if (isListening) {
+              recognition.start();
+          }
+      }
+
+      recognitionRef.current = recognition;
+    }
+
+    return () => {
+        if(recognitionRef.current) {
+            recognitionRef.current.stop();
+        }
+    }
+  }, [onVoiceCommand, isListening]);
 
   const handleMicClick = () => {
-    setIsListening(!isListening);
-    if(onVoiceCommand) {
-        onVoiceCommand(isListening ? 'stop' : 'start');
+    if (isListening) {
+      recognitionRef.current?.stop();
+    } else {
+      recognitionRef.current?.start();
     }
+    setIsListening(!isListening);
   };
 
   const actionButtons = [

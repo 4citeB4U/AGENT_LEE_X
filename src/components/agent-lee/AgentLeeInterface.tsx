@@ -13,6 +13,7 @@ import { RWDLogo } from './RWDLogo';
 export const AgentLeeInterface: React.FC = () => {
   const [isNotepadOpen, setIsNotepadOpen] = useState(false);
   const [isDialerOpen, setIsDialerOpen] = useState(false);
+  const [transcript, setTranscript] = useState('');
 
   const handleEmailClick = () => {
     const body = 'Message from Agent Lee';
@@ -35,7 +36,7 @@ export const AgentLeeInterface: React.FC = () => {
 
   const handleVoiceCommand = (command: string) => {
     console.log('Voice command:', command);
-    // Process voice commands here
+    setTranscript(command);
   };
 
   return (
@@ -52,7 +53,7 @@ export const AgentLeeInterface: React.FC = () => {
 
       <div className="h-screen grid grid-cols-1 lg:grid-cols-2 grid-rows-2 gap-6 p-6 relative z-10">
         <CameraPanel />
-        <AgentPanel />
+        <AgentPanel transcript={transcript} />
         <SearchPanel />
         <DocumentPanel />
       </div>
