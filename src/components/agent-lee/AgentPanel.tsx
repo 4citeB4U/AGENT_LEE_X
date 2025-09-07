@@ -20,7 +20,7 @@ export const AgentPanel: React.FC = () => {
 
       <div className="w-full h-full relative overflow-hidden">
         <Image
-          src="https://picsum.photos/800/1200"
+          src="/lovable-uploads/2706e23b-2856-4941-9457-3a17e0892419.png"
           alt="Agent Lee"
           layout="fill"
           objectFit="cover"

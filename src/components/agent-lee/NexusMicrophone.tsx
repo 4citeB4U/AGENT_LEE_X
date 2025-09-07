@@ -29,10 +29,10 @@ export const NexusMicrophone: React.FC<NexusMicrophoneProps> = ({
   };
 
   const actionButtons = [
-    { handler: onEmailClick, src: 'https://picsum.photos/48/48', alt: "Email", hint: "email icon", pos: "-top-6 -left-20" },
-    { handler: onSearchClick, src: 'https://picsum.photos/48/48', alt: "Search", hint: "search icon", pos: "-top-6 -right-20" },
-    { handler: onCallClick, src: 'https://picsum.photos/48/48', alt: "Phone", hint: "phone icon", pos: "-bottom-6 -right-20" },
-    { handler: onNotesClick, src: 'https://picsum.photos/48/48', alt: "Notes", hint: "document icon", pos: "-bottom-6 -left-20" }
+    { handler: onEmailClick, src: '/lovable-uploads/2a13531b-3f8c-4573-8991-a18a99477017.png', alt: "Email", hint: "email icon", pos: "-top-6 -left-20" },
+    { handler: onSearchClick, src: '/lovable-uploads/d3d81b92-9118-4903-a15e-a6167812f2c8.png', alt: "Search", hint: "search icon", pos: "-top-6 -right-20" },
+    { handler: onCallClick, src: '/lovable-uploads/df209772-8419-462a-8980-60b64d1f568f.png', alt: "Phone", hint: "phone icon", pos: "-bottom-6 -right-20" },
+    { handler: onNotesClick, src: '/lovable-uploads/be1897d2-9a00-47b2-921c-5d6c8b417e29.png', alt: "Notes", hint: "document icon", pos: "-bottom-6 -left-20" }
   ];
 
   return (
@@ -54,7 +54,7 @@ export const NexusMicrophone: React.FC<NexusMicrophoneProps> = ({
             `}
           >
             <Image 
-              src="https://picsum.photos/96/96"
+              src="/lovable-uploads/e29a7386-302a-4363-959c-851996841269.png"
               alt="MACMILLION Microphone"
               width={96}
               height={96} 
