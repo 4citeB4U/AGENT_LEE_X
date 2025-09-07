@@ -122,6 +122,7 @@ export const NexusMicrophone: React.FC<NexusMicrophoneProps> = ({
               height={96} 
               className="object-contain filter drop-shadow-lg"
               data-ai-hint="microphone logo"
+              priority
             />
             <div className="absolute inset-0 nexus-ring opacity-60" />
             {isListening && (
@@ -143,7 +144,7 @@ export const NexusMicrophone: React.FC<NexusMicrophoneProps> = ({
               className={`absolute ${btn.pos} transform hover:scale-110 transition-all duration-200 bg-transparent border-0 p-0`}
               title={btn.alt}
             >
-              <Image src={btn.src} alt={btn.alt} width={48} height={48} className="object-contain" data-ai-hint={btn.hint} />
+              <Image src={btn.src} alt={btn.alt} width={48} height={48} className="object-contain" data-ai-hint={btn.hint} priority />
             </Button>
           ))}
         </div>

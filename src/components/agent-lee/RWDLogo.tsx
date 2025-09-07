@@ -12,6 +12,7 @@ export const RWDLogo: React.FC = () => {
         height={64}
         data-ai-hint="corporate logo"
         className="opacity-80 hover:opacity-100 transition-opacity duration-300 filter drop-shadow-lg" 
+        priority
       />
     </a>
   );

@@ -34,6 +34,7 @@ export const AgentPanel: React.FC<AgentPanelProps> = ({ transcript }) => {
               height={525}
               className="object-contain max-w-full max-h-full"
               data-ai-hint="futuristic avatar"
+              priority
             />
         )}
       </div>
