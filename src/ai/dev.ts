@@ -1,1 +1,5 @@
-// Flows will be imported for their side effects in this file.
+import { config } from 'dotenv';
+config();
+
+import '@/ai/flows/adaptive-llm-selection-flow.ts';
+import '@/ai/flows/proactive-command-suggestions.ts';

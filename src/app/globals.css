@@ -2,79 +2,112 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  font-family: Arial, Helvetica, sans-serif;
-}
+/* Agent Lee Luxury Design System - Gold & Emerald Green Palette
+All colors MUST be HSL. Premium aesthetic with gold accents and deep green base.
+*/
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 0 0% 3.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 3.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 3.9%;
-    --primary: 0 0% 9%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 0 0% 96.1%;
-    --secondary-foreground: 0 0% 9%;
-    --muted: 0 0% 96.1%;
-    --muted-foreground: 0 0% 45.1%;
-    --accent: 0 0% 96.1%;
-    --accent-foreground: 0 0% 9%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 89.8%;
-    --input: 0 0% 89.8%;
-    --ring: 0 0% 3.9%;
-    --chart-1: 12 76% 61%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
-    --radius: 0.5rem;
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    /* Core colors from proposal */
+    --background: 210 30% 5%; /* Near-black #070B10 */
+    --foreground: 48 95% 85%;
+
+    /* Card System - Glassy with depth */
+    --card: 158 45% 12%;
+    --card-foreground: 48 95% 85%;
+
+    /* Popover System */
+    --popover: 158 55% 10%;
+    --popover-foreground: 48 95% 85%;
+    
+    /* Primary color from proposal */
+    --primary: 160 87% 27%; /* Deep emerald green #0A7F5C */
+    --primary-foreground: 48 95% 95%;
+
+    /* Secondary Green System */
+    --secondary: 158 35% 18%;
+    --secondary-foreground: 48 95% 85%;
+
+    /* Muted System */
+    --muted: 158 25% 15%;
+    --muted-foreground: 48 25% 65%;
+
+    /* Accent color from proposal */
+    --accent: 45 89% 38%; /* Antique gold #B8860B */
+    --accent-foreground: 158 65% 8%;
+
+    /* Destructive Red System */
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 48 95% 85%;
+
+    /* Border & Input System */
+    --border: 158 25% 25%;
+    --input: 158 35% 15%;
+    --ring: 45 89% 38%;
+
+    /* Luxury Radius */
+    --radius: 0.75rem;
+
+    /* Luxury Color Palette Extensions */
+    --gold-primary: 45 89% 45%; /* A slightly brighter gold */
+    --gold-secondary: 45 89% 38%; /* Accent gold */
+    --gold-muted: 45 65% 45%;
+    --emerald-primary: 160 80% 25%; /* Primary emerald */
+    --emerald-secondary: 158 45% 12%;
+    --emerald-accent: 158 35% 18%;
+
+    /* Gradients */
+    --gradient-gold: linear-gradient(135deg, hsl(45 89% 45%), hsl(45 89% 38%));
+    --gradient-emerald: linear-gradient(135deg, hsl(160 80% 25%), hsl(158 45% 12%));
+    --gradient-luxury: linear-gradient(135deg, hsl(210 30% 5%), hsl(158 45% 12%), hsl(45 89% 45% / 0.1));
+
+    /* Shadows */
+    --shadow-luxury: 0 25px 50px -12px hsl(210 30% 5% / 0.5);
+    --shadow-gold: 0 10px 30px -10px hsl(45 89% 45% / 0.3);
+    --shadow-glow: 0 0 40px hsl(45 89% 45% / 0.4);
+
+    /* Animations */
+    --transition-luxury: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* Nexus Specific */
+    --nexus-ring: 45 89% 45%;
+    --nexus-glow: 45 89% 45% / 0.6;
+    --nexus-pulse: 45 89% 45% / 0.8;
+
+    /* Glass Effect */
+    --glass-bg: hsl(158 45% 12% / 0.8);
+    --glass-border: hsl(45 89% 45% / 0.2);
+    --glass-backdrop: blur(20px);
+
+    /* Status Colors */
+    --status-active: 120 100% 50%;
+    --status-warning: 45 100% 60%;
+    --status-error: 0 84% 60%;
+    --status-info: 200 100% 60%;
   }
+
   .dark {
-    --background: 0 0% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 0 0% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 0 0% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 0 0% 9%;
-    --secondary: 0 0% 14.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 14.9%;
-    --muted-foreground: 0 0% 63.9%;
-    --accent: 0 0% 14.9%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 14.9%;
-    --input: 0 0% 14.9%;
-    --ring: 0 0% 83.1%;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    /* Dark mode uses same luxury palette - already optimized for dark */
+    --background: 210 30% 5%;
+    --foreground: 48 95% 85%;
+    --card: 158 45% 12%;
+    --card-foreground: 48 95% 85%;
+    --popover: 158 55% 10%;
+    --popover-foreground: 48 95% 85%;
+    --primary: 160 87% 27%;
+    --primary-foreground: 48 95% 95%;
+    --secondary: 158 35% 18%;
+    --secondary-foreground: 48 95% 85%;
+    --muted: 158 25% 15%;
+    --muted-foreground: 48 25% 65%;
+    --accent: 45 89% 38%;
+    --accent-foreground: 158 65% 8%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 48 95% 85%;
+    --border: 158 25% 25%;
+    --input: 158 35% 15%;
+    --ring: 45 89% 38%;
   }
 }
 
@@ -82,7 +115,73 @@ body {
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-body);
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-headline);
+  }
+}
+
+
+@layer components {
+  /* Custom Utility Classes */
+  .bg-luxury-gradient {
+    background: var(--gradient-luxury);
+  }
+
+  .bg-gold-gradient {
+    background: var(--gradient-gold);
+  }
+
+  .bg-emerald-gradient {
+    background: var(--gradient-emerald);
+  }
+
+  .shadow-luxury {
+    box-shadow: var(--shadow-luxury);
+  }
+
+  .shadow-gold {
+    box-shadow: var(--shadow-gold);
+  }
+
+  .shadow-glow {
+    box-shadow: var(--shadow-glow);
+  }
+
+  .glass-panel {
+    background: var(--glass-bg);
+    -webkit-backdrop-filter: var(--glass-backdrop);
+    backdrop-filter: var(--glass-backdrop);
+    border: 1px solid var(--glass-border);
+  }
+
+  .transition-luxury {
+    transition: var(--transition-luxury);
+  }
+
+  .nexus-ring {
+    outline: 2px solid hsl(var(--nexus-ring));
+  }
+
+  .nexus-glow {
+    box-shadow: 0 0 20px hsl(var(--nexus-glow));
+  }
+
+  .nexus-pulse {
+    animation: nexus-pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes nexus-pulse {
+    0%, 100% {
+      box-shadow: 0 0 20px hsl(var(--nexus-glow));
+    }
+    50% {
+      box-shadow: 0 0 40px hsl(var(--nexus-pulse));
+    }
   }
 }
