@@ -12,13 +12,20 @@ export default function Home() {
 
   useEffect(() => {
     // In a real app, this would be a check for a valid session token
-    const user = localStorage.getItem("agentlee_user_info");
-    if (!user) {
+    // For this prototype, we check a value set after the login animation.
+    try {
+      const user = localStorage.getItem("agentlee_user");
+      if (!user) {
+        router.replace("/login");
+      } else {
+        setIsLoggedIn(true);
+      }
+    } catch (e) {
+      // localStorage is not available
       router.replace("/login");
-    } else {
-      setIsLoggedIn(true);
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   }, [router]);
 
   if (isLoading) {
@@ -41,3 +48,5 @@ export default function Home() {
 
   return null;
 }
+
+    
