@@ -1,41 +1,44 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { Checkbox } from "@/components/ui/checkbox";
-import { LoadingOverlay } from "@/components/login/LoadingOverlay";
-import { PolicyModal } from "@/components/login/PolicyModal";
-import { BackgroundFx } from "@/components/login/BackgroundFx";
+import { useEffect, useState, useRef } from 'react';
+import { useRouter } from 'next/navigation';
+import Image from 'next/image';
+import { Checkbox } from '@/components/ui/checkbox';
+import { LoadingOverlay } from '@/components/login/LoadingOverlay';
+import { PolicyModal } from '@/components/login/PolicyModal';
+import { BackgroundFx } from '@/components/login/BackgroundFx';
 import "./login.css";
 
-const LoginPage: React.FC = () => {
+const LoginPage = () => {
   const router = useRouter();
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [error, setError] = useState("");
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [alias, setAlias] = useState('');
+  const [saveProfile, setSaveProfile] = useState(true);
+  const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [policyModalOpen, setPolicyModalOpen] = useState(false);
-  const [modalContent, setModalContent] = useState({ title: "", content: "" });
+  const [modalContent, setModalContent] = useState({ title: '', content: '' });
 
   const permissions = [
-    { id: "mic", label: "Access your microphone" },
-    { id: "camera", label: "Access your camera" },
-    { id: "screen", label: "Read screen text & contents" },
-    { id: "keystrokes", label: "Read all keystrokes" },
-    { id: "apps", label: "Control your apps" },
-    { id: "files", label: "Read & write your files" },
-    { id: "contacts", label: "Access your contacts" },
-    { id: "calendar", label: "Access your calendar" },
-    { id: "notifs", label: "Read your notifications" },
-    { id: "tabs", label: "Access open browser tabs" },
+    { id: 'p_camera', label: 'Camera — for video calls' },
+    { id: 'p_mic', label: 'Microphone — for voice commands' },
+    { id: 'p_notif', label: 'Notifications — for reminders' },
+    { id: 'p_tel', label: 'Phone & SMS — place/receive calls and texts' },
+    { id: 'p_email', label: 'Email — send/receive messages' },
+    { id: 'p_files', label: 'Files & media — read PDFs/Docs' },
+    { id: 'p_apps', label: 'Apps & browser — open pages/apps' },
+    { id: 'p_contacts', label: 'Contacts & calendar — scheduling' },
   ];
+
   const [checkedPerms, setCheckedPerms] = useState<Record<string, boolean>>(
-    permissions.reduce((acc, p) => ({ ...acc, [p.id]: true }), {})
+    permissions.reduce((acc, p) => ({ ...acc, [p.id]: false }), {})
   );
 
   const handlePermChange = (id: string, isChecked: boolean) => {
-    setCheckedPerms(prev => ({ ...prev, [id]: isChecked }));
+    setCheckedPerms((prev) => ({ ...prev, [id]: isChecked }));
   };
+
   const handleSelectAll = (isChecked: boolean) => {
     setCheckedPerms(permissions.reduce((acc, p) => ({ ...acc, [p.id]: isChecked }), {}));
   };
@@ -43,16 +46,19 @@ const LoginPage: React.FC = () => {
   const isAllSelected = Object.values(checkedPerms).every(Boolean);
 
   const handleContinue = () => {
-    if (!name.trim() || !email.trim()) {
-      setError("Please enter your name and email.");
+    if (!name.trim() && !email.trim()) {
+      setError('Please provide at least a name or an email.');
       return;
     }
-    setError("");
+    setError('');
     setIsLoading(true);
-    
+    if (saveProfile) {
+      try {
+        localStorage.setItem('agentlee_user', JSON.stringify({ name, email, savedAt: Date.now() }));
+      } catch (_) {}
+    }
     setTimeout(() => {
-      localStorage.setItem("agentlee_user_info", JSON.stringify({ name, email }));
-      router.push("/");
+      router.push('/');
     }, 4000);
   };
 
@@ -69,83 +75,73 @@ const LoginPage: React.FC = () => {
     <>
       <BackgroundFx />
       <LoadingOverlay isLoading={isLoading} />
-      <PolicyModal 
+      <PolicyModal
         isOpen={policyModalOpen}
         onClose={() => setPolicyModalOpen(false)}
         title={modalContent.title}
-        lastUpdated="July 29th, 2024"
+        lastUpdated="August 15, 2023"
       >
         {modalContent.content}
       </PolicyModal>
 
       <main className="login-body">
-        <div className="login-card">
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '22px' }}>
-            <div style={{ paddingRight: '22px', borderRight: '1px solid var(--edge)' }}>
-              <div className="login-logo">
-                <img src="https://picsum.photos/160/160" data-ai-hint="logo design" alt="Agent Lee Logo" />
-              </div>
-              <h1 style={{fontSize: '1.65rem', fontWeight: 700, marginBottom: '4px', lineHeight: 1.2}}>Agent Lee</h1>
-              <p className="login-sub">Unified AI Assistant</p>
-              <p className="login-muted login-small" style={{ marginTop: '12px' }}>
-                Your personal AI assistant, running locally for enhanced privacy and control. All data is stored on your device.
-              </p>
-            </div>
+        <div className="card" role="main" aria-labelledby="app-title">
+          <div className="logo">
+            <Image src="https://picsum.photos/160/160" data-ai-hint="logo design" alt="Agent Lee Avatar" width={160} height={160} className="rounded-xl" />
             <div>
-              <details open className="login-section">
-                <summary className="login-section-summary">
-                  Identity
-                </summary>
-                <div className="login-section-content">
-                  <div className="login-check">
-                    <input type="text" placeholder="Name" value={name} onChange={e => setName(e.target.value)} />
-                  </div>
-                  <div className="login-check">
-                    <input type="email" placeholder="Email (optional)" value={email} onChange={e => setEmail(e.target.value)} />
-                  </div>
-                </div>
-              </details>
-              <details className="login-section">
-                <summary className="login-section-summary">Permissions</summary>
-                <div className="login-section-content">
-                   <div className="login-check login-select-all">
-                      <Checkbox
-                        id="select-all"
-                        checked={isAllSelected}
-                        onCheckedChange={handleSelectAll}
-                      />
-                      <label htmlFor="select-all">Select All Permissions</label>
-                   </div>
-                   <div className="login-perm-list">
-                      {permissions.map(p => (
-                         <div className="login-check" key={p.id}>
-                           <Checkbox
-                             id={p.id}
-                             checked={checkedPerms[p.id] ?? false}
-                             onCheckedChange={c => handlePermChange(p.id, !!c)}
-                           />
-                           <label htmlFor={p.id}>{p.label}</label>
-                         </div>
-                      ))}
-                   </div>
-                </div>
-              </details>
+              <h1 id="app-title">Agent Lee — MACMILLION Login</h1>
+              <div className="sub">Your personal AI instance. 100% under your control.</div>
+            </div>
+          </div>
 
-              <button className="login-btn" onClick={handleContinue}>
-                Continue
-              </button>
-              <p className="login-error">{error}</p>
+          <div className="muted small" style={{ margin: "-6px 0 10px 0", display: "flex", gap: "12px", flexWrap: "wrap" }}>
+            <span>Policies:</span>
+            <a href="#" id="openTerms" onClick={(e) => { e.preventDefault(); showPolicy('terms'); }}>Terms of Use</a>
+            <span>•</span>
+            <a href="#" id="openPrivacy" onClick={(e) => { e.preventDefault(); showPolicy('privacy'); }}>Privacy Policy</a>
+          </div>
 
-              <div className="login-footer-bar">
-                <div className="login-footer-left login-small">
-                  &copy; RWD, 2024 &nbsp;&bull;&nbsp;
-                  <a href="#" onClick={(e) => {e.preventDefault(); showPolicy("privacy")}} className="login-link">Privacy</a> &nbsp;&bull;&nbsp;
-                  <a href="#" onClick={(e) => {e.preventDefault(); showPolicy("terms")}} className="login-link">Terms</a>
-                </div>
-                <div className="login-footer-right">
-                  <img src="https://picsum.photos/120/120" data-ai-hint="futuristic logo" alt="RWD" />
-                </div>
+          <details className="section identity" open style={{ gridArea: "identity" }}>
+            <summary><h2>Your info for Agent Lee</h2></summary>
+            <div className="section-content">
+              <p className="muted small">Provide at least a <strong>name</strong> or <strong>email</strong>. Stored locally; editable later in Settings.</p>
+              <div className="check"><label htmlFor="user_name">Name</label><input id="user_name" type="text" placeholder="Your name" value={name} onChange={e => setName(e.target.value)} /></div>
+              <div className="check"><label htmlFor="user_email">Email</label><input id="user_email" type="email" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} /></div>
+              <div className="check"><label htmlFor="user_alias">Alias (optional)</label><input id="user_alias" type="text" placeholder="Preferred nickname" value={alias} onChange={e => setAlias(e.target.value)} /></div>
+              <label className="check"><Checkbox id="c_profile" checked={saveProfile} onCheckedChange={(checked) => setSaveProfile(!!checked)} /> Save name/email on this device</label>
+            </div>
+          </details>
+
+          <details className="section permissions" open style={{ gridArea: "permissions" }}>
+            <summary><h2>Permissions requested (all optional)</h2></summary>
+            <div className="section-content small">
+              <div className="check select-all">
+                <Checkbox id="accept_all" checked={isAllSelected} onCheckedChange={handleSelectAll} />
+                <label htmlFor="accept_all">Accept all permissions (optional)</label>
               </div>
+              <p>Granting them now allows Agent Lee to start with full capabilities. You may skip or change later in Settings.</p>
+              <ul className="perm-list">
+                {permissions.map(p => (
+                  <li className="check" key={p.id}>
+                    <Checkbox id={p.id} checked={checkedPerms[p.id]} onCheckedChange={(c) => handlePermChange(p.id, !!c)} />
+                    <label htmlFor={p.id}>{p.label}</label>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </details>
+
+          <button id="loginBtn" className="btn" style={{ gridArea: "cta" }} onClick={handleContinue}>Continue (permissions optional)</button>
+          <div id="error" className="error" role="alert">{error}</div>
+
+          <div className="footer-bar" role="contentinfo" style={{ gridArea: "footer" }}>
+            <div className="footer-left small">
+              Developed by <a href="https://rapidwebdevelop.com" target="_blank" rel="noopener">rapidwebdevelop.com</a> — a product of <strong>LeeWay Industries</strong>.
+            </div>
+            <div className="footer-right">
+              <a href="https://rapidwebdevelop.com" target="_blank" rel="noopener" aria-label="RapidWebDevelop">
+                <Image src="https://picsum.photos/120/120" data-ai-hint="futuristic logo" alt="RapidWebDevelop Logo" width={120} height={120} />
+              </a>
             </div>
           </div>
         </div>
