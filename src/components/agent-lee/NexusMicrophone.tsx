@@ -38,19 +38,31 @@ export const NexusMicrophone: React.FC<NexusMicrophoneProps> = ({
       recognition.lang = 'en-US';
 
       recognition.onresult = (event: any) => {
-        const transcript = Array.from(event.results)
-          .map((result: any) => result[0])
-          .map((result) => result.transcript)
-          .join('');
-        if (onVoiceCommand) {
-          onVoiceCommand(transcript);
+        let finalTranscript = '';
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          if (event.results[i].isFinal) {
+            finalTranscript += event.results[i][0].transcript;
+          }
+        }
+        if (onVoiceCommand && finalTranscript) {
+          onVoiceCommand(finalTranscript);
         }
       };
       
       recognition.onend = () => {
           if (isListening) {
-              recognition.start();
+              try {
+                recognition.start();
+              } catch(e) {
+                console.error("Speech recognition restart failed", e)
+                setIsListening(false);
+              }
           }
+      }
+      
+      recognition.onerror = (event: any) => {
+        console.error("Speech recognition error", event.error);
+        setIsListening(false);
       }
 
       recognitionRef.current = recognition;
@@ -66,17 +78,23 @@ export const NexusMicrophone: React.FC<NexusMicrophoneProps> = ({
   const handleMicClick = () => {
     if (isListening) {
       recognitionRef.current?.stop();
+      setIsListening(false);
     } else {
-      recognitionRef.current?.start();
+      try {
+        recognitionRef.current?.start();
+        setIsListening(true);
+      } catch (e) {
+        console.error("Could not start speech recognition", e);
+        setIsListening(false);
+      }
     }
-    setIsListening(!isListening);
   };
 
   const actionButtons = [
-    { handler: onEmailClick, src: '/lovable-uploads/2a13531b-3f8c-4573-8991-a18a99477017.png', alt: "Email", hint: "email icon", pos: "-top-6 -left-20" },
-    { handler: onSearchClick, src: '/lovable-uploads/d3d81b92-9118-4903-a15e-a6167812f2c8.png', alt: "Search", hint: "search icon", pos: "-top-6 -right-20" },
-    { handler: onCallClick, src: '/lovable-uploads/df209772-8419-462a-8980-60b64d1f568f.png', alt: "Phone", hint: "phone icon", pos: "-bottom-6 -right-20" },
-    { handler: onNotesClick, src: '/lovable-uploads/be1897d2-9a00-47b2-921c-5d6c8b417e29.png', alt: "Notes", hint: "document icon", pos: "-bottom-6 -left-20" }
+    { handler: onEmailClick, src: '/lovable-uploads/5b829016-a661-4a5d-97c3-b0a6bc95ed24.png', alt: "Email", hint: "email icon", pos: "-top-6 -left-20" },
+    { handler: onSearchClick, src: '/lovable-uploads/3ef1b161-4910-4b78-a7ba-b0ce7bebdec5.png', alt: "Search", hint: "search icon", pos: "-top-6 -right-20" },
+    { handler: onCallClick, src: '/lovable-uploads/376c2c5c-5f76-43c2-a388-bfd6d663e9f6.png', alt: "Phone", hint: "phone icon", pos: "-bottom-6 -right-20" },
+    { handler: onNotesClick, src: '/lovable-uploads/e0b44e0c-5c77-4df7-a9d5-a2164441be9e.png', alt: "Notes", hint: "document icon", pos: "-bottom-6 -left-20" }
   ];
 
   return (
@@ -98,7 +116,7 @@ export const NexusMicrophone: React.FC<NexusMicrophoneProps> = ({
             `}
           >
             <Image 
-              src="/lovable-uploads/e29a7386-302a-4363-959c-851996841269.png"
+              src="/lovable-uploads/8364747b-ed79-4640-b301-891588217f5e.png"
               alt="MACMILLION Microphone"
               width={96}
               height={96} 

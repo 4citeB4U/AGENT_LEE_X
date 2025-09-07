@@ -28,7 +28,7 @@ export const AgentPanel: React.FC<AgentPanelProps> = ({ transcript }) => {
             </div>
         ) : (
              <Image
-              src="/lovable-uploads/2706e23b-2856-4941-9457-3a17e0892419.png"
+              src="/lovable-uploads/2044bfa5-9d5c-4adb-82de-367ae1b43884.png"
               alt="Agent Lee"
               width={350}
               height={525}

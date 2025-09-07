@@ -3,38 +3,45 @@ import React, { useRef, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Camera, CameraOff, Send } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+
 
 export const CameraPanel: React.FC = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [isStreaming, setIsStreaming] = useState(false);
+  const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const [message, setMessage] = useState('');
+  const { toast } = useToast();
 
   useEffect(() => {
-    const startCamera = async () => {
+    const getCameraPermission = async () => {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ 
-          video: true, 
-          audio: false 
-        });
-        
+        const stream = await navigator.mediaDevices.getUserMedia({video: true});
+        setHasCameraPermission(true);
+
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
-          setIsStreaming(true);
         }
       } catch (error) {
         console.error('Error accessing camera:', error);
+        setHasCameraPermission(false);
+        toast({
+          variant: 'destructive',
+          title: 'Camera Access Denied',
+          description: 'Please enable camera permissions in your browser settings to use this app.',
+        });
       }
     };
 
-    startCamera();
-
+    getCameraPermission();
+    
     return () => {
       if (videoRef.current?.srcObject) {
         const stream = videoRef.current.srcObject as MediaStream;
         stream.getTracks().forEach(track => track.stop());
       }
     };
-  }, []);
+  }, [toast]);
 
   const handleSendMessage = () => {
     if (message.trim()) {
@@ -44,17 +51,17 @@ export const CameraPanel: React.FC = () => {
   };
 
   return (
-    <div className="glass-panel rounded-2xl overflow-hidden shadow-luxury h-full relative">
+    <div className="glass-panel rounded-2xl overflow-hidden shadow-luxury h-full relative flex flex-col justify-center items-center">
       <div className="absolute top-4 left-4 z-10 flex items-center gap-2">
         <div className={`w-3 h-3 rounded-full animate-pulse ${
-          isStreaming ? 'bg-status-error' : 'bg-gold-muted'
+          hasCameraPermission ? 'bg-status-active' : 'bg-status-error'
         }`} />
         <span className="text-sm text-gold-primary font-medium">Camera</span>
       </div>
 
       <div className="absolute top-4 right-4 z-10">
         <Button variant="icon" size="icon-sm" className="glass-panel">
-          {isStreaming ? <CameraOff className="w-4 h-4" /> : <Camera className="w-4 h-4" />}
+          {hasCameraPermission ? <CameraOff className="w-4 h-4" /> : <Camera className="w-4 h-4" />}
         </Button>
       </div>
 
@@ -65,8 +72,20 @@ export const CameraPanel: React.FC = () => {
         playsInline
         className="w-full h-full object-cover bg-emerald-primary"
       />
+      
+      {hasCameraPermission === false && (
+          <div className="absolute inset-0 bg-background/80 flex items-center justify-center p-4">
+            <Alert variant="destructive" className="max-w-md">
+              <AlertTitle>Camera Access Required</AlertTitle>
+              <AlertDescription>
+                Please allow camera access in your browser to use this feature. You may need to refresh the page after granting permissions.
+              </AlertDescription>
+            </Alert>
+        </div>
+      )}
 
-      <div className="absolute bottom-4 left-4 right-4">
+
+      <div className="absolute bottom-4 left-4 right-4 z-10">
         <div className="glass-panel rounded-xl border border-glass-border backdrop-blur-lg">
           <div className="flex items-center gap-2 p-3">
             <Input
