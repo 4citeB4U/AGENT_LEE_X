@@ -1,12 +1,11 @@
 "use client";
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Checkbox } from '@/components/ui/checkbox';
 import { LoadingOverlay } from '@/components/login/LoadingOverlay';
 import { PolicyModal } from '@/components/login/PolicyModal';
-import { BackgroundFx } from '@/components/login/BackgroundFx';
 import "./login.css";
 
 const LoginPage = () => {
@@ -57,37 +56,68 @@ const LoginPage = () => {
         localStorage.setItem('agentlee_user', JSON.stringify({ name, email, savedAt: Date.now() }));
       } catch (_) {}
     }
-    setTimeout(() => {
-      router.push('/');
-    }, 4000);
+    // The loading sequence handles the redirect
   };
 
   const showPolicy = (type: "privacy" | "terms") => {
+    // In a real app, you'd fetch this content. For now, we'll use placeholder text.
     if (type === "privacy") {
-      setModalContent({ title: "Privacy Policy", content: "Your data is stored locally on your device and is not shared." });
+      setModalContent({ title: "Privacy Policy", content: `Privacy Policy
+Last Updated: August 15, 2023
+
+Your privacy is important to us. This policy explains how we collect, use, and protect your personal information.
+
+Table of Contents
+1. Information We Collect
+2. How We Use Your Information
+3. How We Share Your Information
+4. Agent Lee AI Assistant
+5. Your Rights and Choices
+6. Data Retention
+7. Children's Privacy
+8. International Data Transfers
+9. Changes to This Policy
+10. Contact Us` });
     } else {
-      setModalContent({ title: "Terms of Service", content: "You agree to allow Agent Lee to perform actions on your behalf." });
+      setModalContent({ title: "Terms of Service", content: `Terms of Service
+Last Updated: August 15, 2023
+
+These Terms of Service ("Terms") govern your access to and use of the Artist Empowerment Platform. Please read them carefully.
+
+Table of Contents
+1. Acceptance of Terms
+2. Account Registration and Security
+3. Content and Intellectual Property
+4. Platform Fees and Revenue Sharing
+5. Prohibited Conduct
+6. Termination
+7. Disclaimer of Warranties
+8. Limitation of Liability
+9. Changes to Terms
+10. Governing Law
+11. Contact Information` });
     }
     setPolicyModalOpen(true);
   };
   
   return (
     <>
-      <BackgroundFx />
-      <LoadingOverlay isLoading={isLoading} />
+      <LoadingOverlay isLoading={isLoading} onFinished={() => router.push('/')} />
       <PolicyModal
         isOpen={policyModalOpen}
         onClose={() => setPolicyModalOpen(false)}
         title={modalContent.title}
         lastUpdated="August 15, 2023"
       >
-        {modalContent.content}
+        <pre className="text-sm whitespace-pre-wrap font-body">
+          {modalContent.content}
+        </pre>
       </PolicyModal>
 
-      <main className="login-body">
-        <div className="card" role="main" aria-labelledby="app-title">
+      <div className="login-body">
+        <main className="card" role="main" aria-labelledby="app-title">
           <div className="logo">
-            <Image src="https://picsum.photos/160/160" data-ai-hint="logo design" alt="Agent Lee Avatar" width={160} height={160} className="rounded-xl" />
+            <Image src="/lovable-uploads/2044bfa5-9d5c-4adb-82de-367ae1b43884.png" alt="Agent Lee Avatar" width={160} height={160} className="rounded-xl" />
             <div>
               <h1 id="app-title">Agent Lee — MACMILLION Login</h1>
               <div className="sub">Your personal AI instance. 100% under your control.</div>
@@ -140,12 +170,12 @@ const LoginPage = () => {
             </div>
             <div className="footer-right">
               <a href="https://rapidwebdevelop.com" target="_blank" rel="noopener" aria-label="RapidWebDevelop">
-                <Image src="https://picsum.photos/120/120" data-ai-hint="futuristic logo" alt="RapidWebDevelop Logo" width={120} height={120} />
+                <Image src="/lovable-uploads/a0346b12-b829-4d31-9619-69caf97bb57c.png" alt="RapidWebDevelop Logo" width={120} height={120} />
               </a>
             </div>
           </div>
-        </div>
-      </main>
+        </main>
+      </div>
     </>
   );
 };

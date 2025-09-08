@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Toaster } from "@/components/ui/toaster";
 import "./globals.css";
+import { BackgroundFx } from "@/components/login/BackgroundFx";
 
 export const metadata: Metadata = {
   title: "Agent Lee — Premium AI Assistant | MACMILLION",
@@ -20,6 +21,7 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=PT+Sans:ital,wght@0,400;0,700;1,400;1,700&family=Source+Code+Pro&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased">
+        <BackgroundFx />
         {children}
         <Toaster />
       </body>
