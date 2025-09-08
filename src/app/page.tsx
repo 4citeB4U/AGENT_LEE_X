@@ -11,20 +11,26 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    // In a static export, localStorage is only available on the client.
+    // This effect will run after the component mounts on the client.
     try {
       const user = localStorage.getItem("agentlee_user");
-      if (!user) {
-        router.replace("/login");
-      } else {
+      if (user) {
         setIsLoggedIn(true);
+      } else {
+        // Redirect to the login page if no user data is found.
+        router.replace("/login");
       }
     } catch (e) {
+      // If localStorage is not available or any other error occurs, redirect to login.
+      console.error("Could not access localStorage, redirecting to login.", e);
       router.replace("/login");
     } finally {
       setIsLoading(false);
     }
   }, [router]);
 
+  // While checking the login status, show a skeleton loader.
   if (isLoading) {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-background p-8">
@@ -39,9 +45,12 @@ export default function Home() {
     );
   }
 
+  // If logged in, show the main interface.
   if (isLoggedIn) {
     return <AgentLeeInterface />;
   }
 
+  // If not logged in and not loading, this will be briefly rendered before the redirect happens.
+  // Returning null is appropriate here.
   return null;
 }
