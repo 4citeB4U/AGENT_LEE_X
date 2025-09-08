@@ -117,7 +117,7 @@ Table of Contents
       <div className="login-body">
         <main className="card" role="main" aria-labelledby="app-title">
           <div className="logo">
-            <Image src="/lovable-uploads/2044bfa5-9d5c-4adb-82de-367ae1b43884.png" alt="Agent Lee Avatar" width={160} height={160} className="rounded-xl" />
+            <Image src="/AGENT_LEE_X/lovable-uploads/2044bfa5-9d5c-4adb-82de-367ae1b43884.png" alt="Agent Lee Avatar" width={160} height={160} className="rounded-xl" />
             <div>
               <h1 id="app-title">Agent Lee — MACMILLION Login</h1>
               <div className="sub">Your personal AI instance. 100% under your control.</div>
@@ -170,7 +170,7 @@ Table of Contents
             </div>
             <div className="footer-right">
               <a href="https://rapidwebdevelop.com" target="_blank" rel="noopener" aria-label="RapidWebDevelop">
-                <Image src="/lovable-uploads/a0346b12-b829-4d31-9619-69caf97bb57c.png" alt="RapidWebDevelop Logo" width={120} height={120} />
+                <Image src="/AGENT_LEE_X/lovable-uploads/a0346b12-b829-4d31-9619-69caf97bb57c.png" alt="RapidWebDevelop Logo" width={120} height={120} />
               </a>
             </div>
           </div>

@@ -11,8 +11,6 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // In a real app, this would be a check for a valid session token
-    // For this prototype, we check a value set after the login animation.
     try {
       const user = localStorage.getItem("agentlee_user");
       if (!user) {
@@ -21,7 +19,6 @@ export default function Home() {
         setIsLoggedIn(true);
       }
     } catch (e) {
-      // localStorage is not available
       router.replace("/login");
     } finally {
       setIsLoading(false);
@@ -48,5 +45,3 @@ export default function Home() {
 
   return null;
 }
-
-    
