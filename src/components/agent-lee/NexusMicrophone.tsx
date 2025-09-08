@@ -91,10 +91,10 @@ export const NexusMicrophone: React.FC<NexusMicrophoneProps> = ({
   };
 
   const actionButtons = [
-    { handler: onEmailClick, src: '/lovable-uploads/5b829016-a661-4a5d-97c3-b0a6bc95ed24.png', alt: "Email", hint: "email icon", pos: "-top-6 -left-20" },
-    { handler: onSearchClick, src: '/lovable-uploads/3ef1b161-4910-4b78-a7ba-b0ce7bebdec5.png', alt: "Search", hint: "search icon", pos: "-top-6 -right-20" },
-    { handler: onCallClick, src: '/lovable-uploads/376c2c5c-5f76-43c2-a388-bfd6d663e9f6.png', alt: "Phone", hint: "phone icon", pos: "-bottom-6 -right-20" },
-    { handler: onNotesClick, src: '/lovable-uploads/e0b44e0c-5c77-4df7-a9d5-a2164441be9e.png', alt: "Notes", hint: "document icon", pos: "-bottom-6 -left-20" }
+    { handler: onEmailClick, src: '/AGENT_LEE_X/lovable-uploads/5b829016-a661-4a5d-97c3-b0a6bc95ed24.png', alt: "Email", hint: "email icon", pos: "-top-6 -left-20" },
+    { handler: onSearchClick, src: '/AGENT_LEE_X/lovable-uploads/3ef1b161-4910-4b78-a7ba-b0ce7bebdec5.png', alt: "Search", hint: "search icon", pos: "-top-6 -right-20" },
+    { handler: onCallClick, src: '/AGENT_LEE_X/lovable-uploads/376c2c5c-5f76-43c2-a388-bfd6d663e9f6.png', alt: "Phone", hint: "phone icon", pos: "-bottom-6 -right-20" },
+    { handler: onNotesClick, src: '/AGENT_LEE_X/lovable-uploads/e0b44e0c-5c77-4df7-a9d5-a2164441be9e.png', alt: "Notes", hint: "document icon", pos: "-bottom-6 -left-20" }
   ];
 
   return (
@@ -116,7 +116,7 @@ export const NexusMicrophone: React.FC<NexusMicrophoneProps> = ({
             `}
           >
             <Image 
-              src="/lovable-uploads/8364747b-ed79-4640-b301-891588217f5e.png"
+              src="/AGENT_LEE_X/lovable-uploads/8364747b-ed79-4640-b301-891588217f5e.png"
               alt="MACMILLION Microphone"
               width={96}
               height={96} 

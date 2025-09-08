@@ -56,7 +56,6 @@ const LoginPage = () => {
         localStorage.setItem('agentlee_user', JSON.stringify({ name, email, alias, savedAt: Date.now() }));
       } catch (_) {}
     }
-    // The loading sequence handles the redirect to the main app page.
   };
 
   const showPolicy = (type: "privacy" | "terms") => {
@@ -114,14 +113,14 @@ const LoginPage = () => {
             <summary><h2>Permissions requested (all optional)</h2></summary>
             <div className="section-content small">
               <div className="check select-all">
-                <Checkbox id="accept_all" checked={isAllSelected} onCheckedChange={(_, checked) => handleSelectAll(!!checked)} />
+                <Checkbox id="accept_all" checked={isAllSelected} onCheckedChange={(e) => handleSelectAll(e === 'indeterminate' ? false : e)} />
                 <label htmlFor="accept_all">Accept all permissions (optional)</label>
               </div>
               <p>Granting them now allows Agent Lee to start with full capabilities. You may skip or change later in Settings.</p>
               <ul className="perm-list">
                 {permissions.map(p => (
                   <li className="check" key={p.id}>
-                    <Checkbox id={p.id} checked={checkedPerms[p.id]} onCheckedChange={(_, c) => handlePermChange(p.id, !!c)} />
+                    <Checkbox id={p.id} checked={checkedPerms[p.id]} onCheckedChange={(e) => handlePermChange(p.id, e === 'indeterminate' ? false : e)} />
                     <label htmlFor={p.id}>{p.label}</label>
                   </li>
                 ))}
