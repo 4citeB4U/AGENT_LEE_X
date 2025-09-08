@@ -15,6 +15,16 @@ export const CameraPanel: React.FC = () => {
 
   useEffect(() => {
     const getCameraPermission = async () => {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        console.error('Camera API not available.');
+        setHasCameraPermission(false);
+        toast({
+          variant: 'destructive',
+          title: 'Camera Not Supported',
+          description: 'Your browser does not support the camera API.',
+        });
+        return;
+      }
       try {
         const stream = await navigator.mediaDevices.getUserMedia({video: true});
         setHasCameraPermission(true);
@@ -54,7 +64,7 @@ export const CameraPanel: React.FC = () => {
     <div className="glass-panel rounded-2xl overflow-hidden shadow-luxury h-full relative flex flex-col justify-center items-center">
       <div className="absolute top-4 left-4 z-10 flex items-center gap-2">
         <div className={`w-3 h-3 rounded-full animate-pulse ${
-          hasCameraPermission ? 'bg-status-active' : 'bg-status-error'
+          hasCameraPermission === true ? 'bg-status-active' : hasCameraPermission === false ? 'bg-status-error' : 'bg-status-warning'
         }`} />
         <span className="text-sm text-gold-primary font-medium">Camera</span>
       </div>
