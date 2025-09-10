@@ -1,0 +1,35 @@
+name: forbid-external-client
+on:
+  pull_request:
+    branches: [ main, develop, 'feat/**' ]
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - run: npm ci
+      - run: npm run codemod:assets
+      - run: git diff --name-only --exit-code || (echo "::error::Found client external URLs; rewrite them via /assets/*" && exit 1)
+name: forbid-external-client
+on:
+  pull_request:
+    branches: [ main, develop, feat/** ]
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Scan client files for disallowed hosts
+        run: |
+          set -e
+          MATCHES=0
+          while read host; do
+            [ -z "$host" ] && continue
+            if grep -RIn --include=*.{ts,tsx,js,jsx,html,css} -E "https?://$host/" app pages components src public workers >/dev/null 2>&1; then
+              echo "::error::Found client external URL to $host. Use /assets/$host/<path> via the proxy route."
+              MATCHES=1
+            fi
+          done < scripts/forbidden-hosts.txt
+          exit $MATCHES

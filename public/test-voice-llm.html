@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charSet="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Agent Lee — Voice + LLM Smoke Test (No Keys)</title>
+    <link crossOrigin="anonymous" rel="stylesheet" href="/test-voice-llm.css">
+  </head>
+<body>
+  <div class="wrap">
+    <h1>Agent Lee — Voice + LLM Smoke Test</h1>
+    <p class="small">This page tests in‑browser Kokoro TTS (no keys) and a simple “mock LLM” flow to confirm end‑to‑end speaking.
+      Use it to validate audio works before deeper debugging.</p>
+
+    <div class="card grid">
+      <div>
+        <h3>1) Voice Test (Kokoro)</h3>
+  <div class="row m-8-0-6">
+          <input id="voiceText" type="text" placeholder="Type something for Kokoro to speak…" value="Howdy partner — Agent Lee is online and ready." />
+          <button id="btnSpeak">Speak</button>
+        </div>
+  <div class="row m-6-0">
+          <label for="voiceSelect" class="small">Voice</label>
+          <select id="voiceSelect"></select>
+          <label for="speed" class="small">Speed</label>
+            <input id="speed" type="number" min="0.5" max="1.5" step="0.05" value="0.95" />
+        </div>
+        <p class="hint">No keys needed. First play may take a few seconds while the model loads.</p>
+      </div>
+      <div>
+        <h3>2) Simple Chat (Mock LLM)</h3>
+  <div class="row m-8-0-6">
+          <input id="userMsg" type="text" placeholder="Ask anything…" value="Summarize benefits of in‑browser AI." />
+          <button id="btnAsk">Ask</button>
+        </div>
+        <textarea id="chatOut" placeholder="LLM answer appears here…"></textarea>
+  <div class="row mt-8">
+          <button id="btnSpeakAnswer">Speak Answer</button>
+        </div>
+        <p class="hint">This uses a tiny in‑page heuristic “LLM” so the voice path can be validated without keys. We’ll switch to your real LLM once configured.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Logs</h3>
+      <pre id="log" class="log"></pre>
+    </div>
+  <audio id="wavFallback" class="hidden-audio" preload="auto"></audio>
+  </div>
+
+  <script crossOrigin="anonymous" type="module">
+    // Workerized Kokoro to avoid blocking the UI
+    let worker = null;
+    let workerReady = false;
+
+    const logEl = document.getElementById('log');
+    function log(...args) {
+      const line = args.map(a => typeof a === 'string' ? a : JSON.stringify(a)).join(' ');
+      logEl.textContent += line + "\n";
+      logEl.scrollTop = logEl.scrollHeight;
+      console.log(...args);
+    }
+
+    let lastSpeakText = '';
+    function initWorker() {
+      if (worker) return;
+      worker = new Worker('/kokoro-worker.js', { type: 'module' });
+      worker.onmessage = (e) => {
+        const { type, voices, error, data, sampleRate, channels, buffer, debug } = e.data || {};
+        if (type === 'ready') { workerReady = true; log('Kokoro worker: ready'); return; }
+        if (type === 'voices') { populateVoices(voices || []); return; }
+        if (type === 'audio') { playAudio(data, sampleRate, channels).catch(err => log('Audio play error:', err)); return; }
+        if (type === 'wav') { playWav(buffer).catch(err => log('WAV play error:', err)); return; }
+        if (type === 'error') {
+          log('Worker error:', error, debug ? ('debug: ' + JSON.stringify(debug)) : '');
+          // Fallback to browser speech so user still hears something
+          if (lastSpeakText) {
+            try { const u = new SpeechSynthesisUtterance(lastSpeakText); u.rate = 0.95; u.pitch = 0.9; speechSynthesis.cancel(); speechSynthesis.speak(u); } catch {}
+          }
+        }
+      };
+      worker.postMessage({ type: 'init', payload: { modelId: 'onnx-community/Kokoro-82M-ONNX', dtype: 'q4' } });
+    }
+
+    async function requestVoices() {
+      initWorker();
+      const start = performance.now();
+      const timeout = 15000; // 15s max
+      while (!workerReady && (performance.now() - start) < timeout) {
+        await new Promise(r => setTimeout(r, 100));
+      }
+      if (!workerReady) { throw new Error('Worker not ready'); }
+      worker.postMessage({ type: 'list' });
+    }
+
+    function populateVoices(voices) {
+      try {
+        const sel = document.getElementById('voiceSelect');
+        sel.innerHTML = '';
+        const prefs = ['am_michael','am_fenrir','am_liam','am_eric','am_echo','am_onyx','af_sky'];
+        const ordered = voices.filter(v => prefs.includes(v)).concat(voices.filter(v => !prefs.includes(v)));
+        ordered.forEach(v => { const opt = document.createElement('option'); opt.value = v; opt.textContent = v; sel.appendChild(opt); });
+        sel.value = ordered.includes('am_michael') ? 'am_michael' : ordered[0] || '';
+        log('Kokoro voices:', ordered);
+      } catch (e) {
+        log('populateVoices failed:', e);
+      }
+    }
+
+    async function speakKokoro(text, voice, speed=1.0) {
+      initWorker();
+      const start = performance.now();
+      const timeout = 15000; // 15s
+      while (!workerReady && (performance.now() - start) < timeout) {
+        await new Promise(r => setTimeout(r, 100));
+      }
+      if (!workerReady) { log('Worker not ready, fallback to browser speech'); return false; }
+      worker.postMessage({ type: 'generate', payload: { text, voice: voice || 'am_michael', speed: Number(speed)||1.0 } });
+      return true;
+    }
+
+    function pcmToWavAB(channelsData, sampleRate, channels) {
+      const sr = Math.max(8000, Math.min(96000, Number(sampleRate) || 24000));
+      const ch = Math.max(1, Number(channels) || 1);
+      const frames = new Float32Array(channelsData[0]).length;
+      const bytesPerSample = 2; // 16-bit PCM
+      const blockAlign = ch * bytesPerSample;
+      const byteRate = sr * blockAlign;
+      const dataSize = frames * blockAlign;
+      const buf = new ArrayBuffer(44 + dataSize);
+      const dv = new DataView(buf);
+      let p = 0;
+      // RIFF header
+      dv.setUint32(p, 0x52494646, false); p += 4; // 'RIFF'
+      dv.setUint32(p, 36 + dataSize, true); p += 4;
+      dv.setUint32(p, 0x57415645, false); p += 4; // 'WAVE'
+      dv.setUint32(p, 0x666d7420, false); p += 4; // 'fmt '
+      dv.setUint32(p, 16, true); p += 4; // PCM chunk size
+      dv.setUint16(p, 1, true); p += 2; // PCM format
+      dv.setUint16(p, ch, true); p += 2;
+      dv.setUint32(p, sr, true); p += 4;
+      dv.setUint32(p, byteRate, true); p += 4;
+      dv.setUint16(p, blockAlign, true); p += 2;
+      dv.setUint16(p, 16, true); p += 2; // bits per sample
+      dv.setUint32(p, 0x64617461, false); p += 4; // 'data'
+      dv.setUint32(p, dataSize, true); p += 4;
+      // Interleave channels
+      const outs = [];
+      for (let c = 0; c < ch; c++) outs[c] = new Float32Array(channelsData[c]);
+      for (let i = 0; i < frames; i++) {
+        for (let c = 0; c < ch; c++) {
+          let s = Math.max(-1, Math.min(1, outs[c][i] || 0));
+          s = s < 0 ? s * 32768 : s * 32767;
+          dv.setInt16(p, s, true); p += 2;
+        }
+      }
+      return buf;
+    }
+
+    async function playAudio(channelsData, sampleRate, channels) {
+      const AC = window.AudioContext || window.webkitAudioContext; if (!AC) throw new Error('No AudioContext');
+      const ctx = new AC();
+      try {
+        const first = new Float32Array(channelsData[0]);
+        const frames = first.length;
+        const sr = Math.max(8000, Math.min(96000, Number(sampleRate) || 24000));
+        log('PCM debug:', { channels, frames, sampleRate: sr });
+        const buffer = ctx.createBuffer(channels, frames, sr);
+        for (let c = 0; c < channels; c++) {
+          const f32 = new Float32Array(channelsData[c]);
+          buffer.getChannelData(c).set(f32);
+        }
+        const src = ctx.createBufferSource();
+        src.buffer = buffer;
+        src.connect(ctx.destination);
+        if (ctx.state === 'suspended') { try { await ctx.resume(); } catch {}
+        }
+        src.start(0);
+        await new Promise(r => src.onended = r);
+      } finally {
+        try { await ctx.close(); } catch {}
+      }
+    }
+
+    // Wrapper to attempt PCM, then fallback to WAV from PCM
+    (function(){
+      const _origPlay = playAudio;
+      playAudio = async function(channelsData, sampleRate, channels) {
+        try { return await _origPlay(channelsData, sampleRate, channels); }
+        catch (err) {
+          log('PCM path failed, falling back to WAV encode…');
+          try {
+            const wav = pcmToWavAB(channelsData, sampleRate, channels);
+            await playWav(wav);
+          } catch (e2) {
+            log('PCM->WAV fallback failed:', e2);
+            throw e2;
+          }
+        }
+      }
+    })();
+
+    async function playWav(arrBuf) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (AC) {
+        try {
+          const ctx = new AC();
+          // Some browsers require callback form; support both
+          const bufCopy = arrBuf.slice(0);
+          const decoded = await new Promise((resolve, reject) => {
+            try {
+              // Newer promise form
+              const p = ctx.decodeAudioData(bufCopy);
+              if (p && typeof p.then === 'function') {
+                p.then(resolve).catch(reject);
+              } else {
+                // Older callback form
+                ctx.decodeAudioData(bufCopy, resolve, reject);
+              }
+            } catch (e) { reject(e); }
+          });
+          const src = ctx.createBufferSource(); src.buffer = decoded; src.connect(ctx.destination); src.start(0);
+          await new Promise(r => src.onended = r);
+          await ctx.close();
+          return;
+        } catch (e) {
+          log('decodeAudioData failed, falling back to <audio> element');
+        }
+      }
+      // Fallback to <audio> element
+      try {
+        const u8 = new Uint8Array(arrBuf);
+        const blob = new Blob([u8], { type: 'audio/wav' });
+        const url = URL.createObjectURL(blob);
+        const el = document.getElementById('wavFallback');
+        el.src = url;
+        await el.play();
+        // cleanup after a short delay
+        setTimeout(() => { URL.revokeObjectURL(url); }, 10000);
+      } catch (err) {
+        log('HTMLAudio fallback failed:', err);
+      }
+    }
+
+    // Populate voice dropdown
+    (async () => {
+      const sel = document.getElementById('voiceSelect');
+      sel.innerHTML = '<option value="">Loading voices…</option>';
+      try { await requestVoices(); } catch (e) { log('Voice request failed:', e); }
+    })();
+
+    // Bind buttons
+    document.getElementById('btnSpeak').addEventListener('click', async () => {
+      const text = document.getElementById('voiceText').value.trim();
+      let voice = document.getElementById('voiceSelect').value;
+      if (!voice) voice = 'am_michael';
+      const speed = document.getElementById('speed').value;
+      if (!text) return;
+      log('Speaking with Kokoro…', { voice, speed });
+      lastSpeakText = text;
+      const ok = await speakKokoro(text, voice, speed);
+      if (!ok) {
+        log('Falling back to browser speech…');
+        try {
+          const u = new SpeechSynthesisUtterance(text); u.rate = 0.95; u.pitch = 0.9; speechSynthesis.cancel(); speechSynthesis.speak(u);
+        } catch {}
+      }
+    });
+
+    // Very small in-page “LLM” mock for smoke test
+    function mockLLM(prompt) {
+      const p = prompt.toLowerCase();
+      if (p.includes('benefit') || p.includes('advantages')) {
+        return `In‑browser AI keeps data local, reduces latency, avoids vendor lock‑in, and works offline for certain tasks.\n\nIt’s ideal for privacy‑sensitive workflows and fast UI feedback.`;
+      }
+      if (p.includes('summarize')) {
+        return `Summary: ${prompt.slice(0, 200)}${prompt.length>200?'…':''}`;
+      }
+      if (p.includes('hello') || p.includes('howdy')) {
+        return `Howdy! Agent Lee here. I’m on your device, ready to speak naturally and help with research.`;
+      }
+      return `I read: “${prompt}”. For this smoke test, I’m a tiny rule‑based mock. We’ll switch to your real LLM endpoint next.`;
+    }
+
+    document.getElementById('btnAsk').addEventListener('click', async () => {
+      const q = document.getElementById('userMsg').value.trim();
+      if (!q) return;
+      const ans = mockLLM(q);
+      document.getElementById('chatOut').value = ans;
+      log('Mock LLM answer ready.');
+    });
+
+    document.getElementById('btnSpeakAnswer').addEventListener('click', async () => {
+      const ans = document.getElementById('chatOut').value.trim();
+      if (!ans) return;
+      const voice = document.getElementById('voiceSelect').value;
+      const speed = document.getElementById('speed').value;
+      const ok = await speakKokoro(ans, voice, speed);
+      if (!ok) {
+        try { const u = new SpeechSynthesisUtterance(ans); u.rate = 0.95; u.pitch = 0.9; speechSynthesis.cancel(); speechSynthesis.speak(u); } catch {}
+      }
+    });
+  </script>
+</body>
+</html>

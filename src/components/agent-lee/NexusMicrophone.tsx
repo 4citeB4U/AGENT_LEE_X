@@ -1,7 +1,6 @@
 "use client";
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import Image from 'next/image';
 
 interface NexusMicrophoneProps {
   onVoiceCommand?: (command: string) => void;
@@ -25,9 +24,9 @@ export const NexusMicrophone: React.FC<NexusMicrophoneProps> = ({
   onCallClick,
   onNotesClick,
 }) => {
-  const [isHovered, setIsHovered] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef<any>(null);
+  const basePath = process.env.NODE_ENV === 'production' ? '/AGENT_LEE_X' : '';
 
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -38,14 +37,19 @@ export const NexusMicrophone: React.FC<NexusMicrophoneProps> = ({
       recognition.lang = 'en-US';
 
       recognition.onresult = (event: any) => {
+        let interim = '';
         let finalTranscript = '';
         for (let i = event.resultIndex; i < event.results.length; ++i) {
-          if (event.results[i].isFinal) {
-            finalTranscript += event.results[i][0].transcript;
-          }
+          const res = event.results[i];
+          const text = res[0]?.transcript || '';
+          if (res.isFinal) finalTranscript += text; else interim += text;
         }
-        if (onVoiceCommand && finalTranscript) {
-          onVoiceCommand(finalTranscript);
+        if (interim) {
+          try { window.dispatchEvent(new CustomEvent('agentlee:voice-interim', { detail: { text: interim } })); } catch {}
+        }
+        if (finalTranscript) {
+          if (onVoiceCommand) onVoiceCommand(finalTranscript);
+          try { window.dispatchEvent(new CustomEvent('agentlee:voice-transcript', { detail: { text: finalTranscript } })); } catch {}
         }
       };
       
@@ -91,18 +95,16 @@ export const NexusMicrophone: React.FC<NexusMicrophoneProps> = ({
   };
 
   const actionButtons = [
-    { handler: onEmailClick, src: '/AGENT_LEE_X/lovable-uploads/5b829016-a661-4a5d-97c3-b0a6bc95ed24.png', alt: "Email", hint: "email icon", pos: "-top-6 -left-20" },
-    { handler: onSearchClick, src: '/AGENT_LEE_X/lovable-uploads/3ef1b161-4910-4b78-a7ba-b0ce7bebdec5.png', alt: "Search", hint: "search icon", pos: "-top-6 -right-20" },
-    { handler: onCallClick, src: '/AGENT_LEE_X/lovable-uploads/376c2c5c-5f76-43c2-a388-bfd6d663e9f6.png', alt: "Phone", hint: "phone icon", pos: "-bottom-6 -right-20" },
-    { handler: onNotesClick, src: '/AGENT_LEE_X/lovable-uploads/e0b44e0c-5c77-4df7-a9d5-a2164441be9e.png', alt: "Notes", hint: "document icon", pos: "-bottom-6 -left-20" }
+    { handler: onEmailClick, src: `${basePath}/image/image/email.png`, alt: "Email", hint: "email icon", pos: "-top-6 -left-20" },
+    { handler: onSearchClick, src: `${basePath}/image/image/Search.png`, alt: "Search", hint: "search icon", pos: "-top-6 -right-20" },
+    { handler: onCallClick, src: `${basePath}/image/image/callandvideo.png`, alt: "Phone", hint: "phone icon", pos: "-bottom-6 -right-20" },
+    { handler: onNotesClick, src: `${basePath}/image/image/quicknotes.png`, alt: "Notes", hint: "document icon", pos: "-bottom-6 -left-20" }
   ];
 
   return (
-    <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-50">
+    <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-[100] pointer-events-none">
       <div 
-        className="relative"
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
+        className="relative pointer-events-none"
       >
         <div className="relative">
           <Button
@@ -113,16 +115,18 @@ export const NexusMicrophone: React.FC<NexusMicrophoneProps> = ({
               relative overflow-hidden
               ${isListening ? 'nexus-pulse animate-pulse' : ''}
               hover:nexus-glow transition-all duration-500
+              pointer-events-auto
             `}
           >
-            <Image 
-              src="/AGENT_LEE_X/lovable-uploads/8364747b-ed79-4640-b301-891588217f5e.png"
+            <img
+              src={`${basePath}/image/image/macmillionmic.png`}
               alt="MACMILLION Microphone"
               width={96}
-              height={96} 
+              height={96}
               className="object-contain filter drop-shadow-lg"
+              style={{ width: 'auto', height: 'auto' }}
               data-ai-hint="microphone logo"
-              priority
+              loading="eager"
             />
             <div className="absolute inset-0 nexus-ring opacity-60" />
             {isListening && (
@@ -131,20 +135,17 @@ export const NexusMicrophone: React.FC<NexusMicrophoneProps> = ({
           </Button>
         </div>
 
-        <div className={`
-          absolute inset-0 transition-all duration-300 ease-out
-          ${isHovered ? 'opacity-100 scale-100' : 'opacity-0 scale-75 pointer-events-none'}
-        `}>
+        <div className="absolute inset-0 pointer-events-none">
           {actionButtons.map((btn, i) => (
             <Button
               key={i}
               variant="icon"
               size="icon-lg"
               onClick={btn.handler}
-              className={`absolute ${btn.pos} transform hover:scale-110 transition-all duration-200 bg-transparent border-0 p-0`}
+              className={`absolute ${btn.pos} transform hover:scale-110 transition-all duration-200 bg-transparent border-0 p-0 pointer-events-auto`}
               title={btn.alt}
             >
-              <Image src={btn.src} alt={btn.alt} width={48} height={48} className="object-contain" data-ai-hint={btn.hint} priority />
+              <img src={btn.src} alt={btn.alt} width={48} height={48} className="object-contain" style={{ width: 'auto', height: 'auto' }} data-ai-hint={btn.hint} loading="eager" />
             </Button>
           ))}
         </div>

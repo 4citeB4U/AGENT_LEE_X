@@ -1,12 +1,12 @@
 "use client";
 import React from 'react';
-import Image from 'next/image';
 
 interface AgentPanelProps {
   transcript: string;
 }
 
 export const AgentPanel: React.FC<AgentPanelProps> = ({ transcript }) => {
+  const basePath = process.env.NODE_ENV === 'production' ? '/AGENT_LEE_X' : '';
 
   return (
     <div className="glass-panel rounded-2xl overflow-hidden shadow-luxury h-full relative flex flex-col">
@@ -27,14 +27,14 @@ export const AgentPanel: React.FC<AgentPanelProps> = ({ transcript }) => {
                 <p className="text-lg text-foreground mt-2 font-body">{transcript}</p>
             </div>
         ) : (
-             <Image
-              src="/AGENT_LEE_X/lovable-uploads/2044bfa5-9d5c-4adb-82de-367ae1b43884.png"
+            <img
+              src={`${basePath}/image/image/AgentLeeavatar.jpeg`}
               alt="Agent Lee"
               width={350}
               height={525}
               className="object-contain max-w-full max-h-full"
               data-ai-hint="futuristic avatar"
-              priority
+              loading="eager"
             />
         )}
       </div>

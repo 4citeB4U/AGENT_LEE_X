@@ -9,6 +9,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export const CameraPanel: React.FC = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const [message, setMessage] = useState('');
   const { toast } = useToast();
@@ -26,11 +27,23 @@ export const CameraPanel: React.FC = () => {
         return;
       }
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({video: true});
+        const constraints: MediaStreamConstraints = {
+          video: {
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+            frameRate: { ideal: 24 },
+            facingMode: 'user'
+          }
+        } as any;
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        streamRef.current = stream;
         setHasCameraPermission(true);
 
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
+          const v = videoRef.current;
+          const onMeta = () => { v.play().catch(()=>{}); v.removeEventListener('loadedmetadata', onMeta); };
+          v.addEventListener('loadedmetadata', onMeta);
         }
       } catch (error) {
         console.error('Error accessing camera:', error);
@@ -50,8 +63,66 @@ export const CameraPanel: React.FC = () => {
         const stream = videoRef.current.srcObject as MediaStream;
         stream.getTracks().forEach(track => track.stop());
       }
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(t => t.stop());
+        streamRef.current = null;
+      }
     };
   }, [toast]);
+
+  // Voice dictation wiring
+  useEffect(() => {
+    const onInterim = (e: any) => {
+      try { const t = e?.detail?.text || ''; if (t) setMessage(t); } catch {}
+    };
+    const onFinal = (e: any) => {
+      try {
+        const t = e?.detail?.text || '';
+        if (t) {
+          setMessage(t);
+          // Auto-send on final transcript
+          setTimeout(() => handleSendMessage(), 10);
+        }
+      } catch {}
+    };
+    window.addEventListener('agentlee:voice-interim' as any, onInterim as any);
+    window.addEventListener('agentlee:voice-transcript' as any, onFinal as any);
+    return () => {
+      window.removeEventListener('agentlee:voice-interim' as any, onInterim as any);
+      window.removeEventListener('agentlee:voice-transcript' as any, onFinal as any);
+    };
+  }, []);
+
+  const toggleCamera = async () => {
+    try {
+      // If stream active -> stop it
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(t => t.stop());
+        streamRef.current = null;
+        if (videoRef.current) {
+          videoRef.current.srcObject = null;
+          videoRef.current.load();
+        }
+        setHasCameraPermission(null);
+        return;
+      }
+      // Else start it
+      const constraints: MediaStreamConstraints = {
+        video: { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 24 }, facingMode: 'user' } as any,
+        audio: false
+      };
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play().catch(()=>{});
+      }
+      setHasCameraPermission(true);
+    } catch (e) {
+      console.error('Toggle camera failed', e);
+      toast({ variant: 'destructive', title: 'Camera Error', description: 'Unable to start camera.' });
+    }
+  };
 
   const handleSendMessage = () => {
     if (message.trim()) {
@@ -70,8 +141,8 @@ export const CameraPanel: React.FC = () => {
       </div>
 
       <div className="absolute top-4 right-4 z-10">
-        <Button variant="icon" size="icon-sm" className="glass-panel">
-          {hasCameraPermission ? <CameraOff className="w-4 h-4" /> : <Camera className="w-4 h-4" />}
+        <Button variant="icon" size="icon-sm" className="glass-panel" onClick={toggleCamera} title={streamRef.current ? 'Stop camera' : 'Start camera'}>
+          {streamRef.current ? <CameraOff className="w-4 h-4" /> : <Camera className="w-4 h-4" />}
         </Button>
       </div>
 

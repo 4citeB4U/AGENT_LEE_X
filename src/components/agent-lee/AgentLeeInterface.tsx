@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { CameraPanel } from './CameraPanel';
 import { AgentPanel } from './AgentPanel';
 import { SearchPanel } from './SearchPanel';
@@ -14,6 +14,7 @@ export const AgentLeeInterface: React.FC = () => {
   const [isNotepadOpen, setIsNotepadOpen] = useState(false);
   const [isDialerOpen, setIsDialerOpen] = useState(false);
   const [transcript, setTranscript] = useState('');
+  const [voiceEnabled, setVoiceEnabled] = useState(true);
 
   const handleEmailClick = () => {
     const body = 'Message from Agent Lee';
@@ -22,8 +23,10 @@ export const AgentLeeInterface: React.FC = () => {
   };
 
   const handleSearchClick = () => {
-    console.log('Search clicked');
-    // Could trigger a search in the search panel
+    // Dispatch a global event so SearchPanel can focus its input and scroll into view
+    try {
+      window.dispatchEvent(new CustomEvent('agentlee:focus-search'));
+    } catch {}
   };
 
   const handleCallClick = () => {
@@ -39,6 +42,21 @@ export const AgentLeeInterface: React.FC = () => {
     setTranscript(command);
   };
 
+  // Basic text-to-speech: speak transcript when it updates
+  useEffect(() => {
+    if (!voiceEnabled) return;
+    if (!transcript) return;
+    try {
+      const utter = new SpeechSynthesisUtterance(transcript);
+      utter.rate = 1.0;
+      utter.pitch = 1.0;
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(utter);
+    } catch (e) {
+      // ignore if speech synthesis is unavailable
+    }
+  }, [transcript, voiceEnabled]);
+
   return (
     <div className="min-h-screen bg-luxury-gradient relative overflow-hidden">
       <div className="absolute inset-0 opacity-5">
@@ -51,7 +69,7 @@ export const AgentLeeInterface: React.FC = () => {
         }} />
       </div>
 
-      <div className="h-screen grid grid-cols-1 lg:grid-cols-2 grid-rows-2 gap-6 p-6 relative z-10">
+      <div className="h-[89vh] grid grid-cols-1 lg:grid-cols-2 grid-rows-2 gap-6 p-4 lg:p-6 relative z-10 max-w-[98vw] mx-auto">
         <CameraPanel />
         <AgentPanel transcript={transcript} />
         <SearchPanel />

@@ -3,7 +3,6 @@ import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { FileText, Share, Download, Upload, File, Video, Image as ImageIcon, Music } from 'lucide-react';
-import Image from 'next/image';
 
 export const DocumentPanel: React.FC = () => {
   const [document, setDocument] = useState<{
@@ -68,13 +67,8 @@ export const DocumentPanel: React.FC = () => {
 
     if (document.type.startsWith('image/') && document.url) {
       return (
-        <div className="relative w-full h-full">
-            <Image 
-                src={document.url} 
-                alt={document.name}
-                layout="fill"
-                objectFit="contain"
-            />
+        <div className="w-full h-full flex items-center justify-center bg-white">
+          <img src={document.url} alt={document.name} className="max-w-full max-h-full object-contain" />
         </div>
       );
     }
@@ -104,8 +98,8 @@ export const DocumentPanel: React.FC = () => {
 
     if (document.content) {
       return (
-        <ScrollArea className="h-full">
-          <pre className="text-xs text-gold-primary whitespace-pre-wrap p-4 font-code">
+        <ScrollArea className="h-full bg-white">
+          <pre className="text-xs text-gold-primary whitespace-pre-wrap p-4 font-code bg-white">
             {document.content}
           </pre>
         </ScrollArea>
@@ -168,7 +162,7 @@ export const DocumentPanel: React.FC = () => {
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-auto">
+      <div className="flex-1 min-h-0 overflow-auto bg-white">
         {renderDocument()}
       </div>
 

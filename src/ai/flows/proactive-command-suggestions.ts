@@ -35,24 +35,7 @@ const proactiveCommandSuggestionsPrompt = ai.definePrompt({
   The current context is described as follows:
   {{contextDescription}}
 
-  Given this context, suggest a list of commands that would be helpful to the user. Be specific and only suggest commands that would be immediately useful. Return the commands as a JSON array of strings.`, safetySettings: [
-      {
-        category: 'HARM_CATEGORY_HATE_SPEECH',
-        threshold: 'BLOCK_ONLY_HIGH',
-      },
-      {
-        category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
-        threshold: 'BLOCK_NONE',
-      },
-      {
-        category: 'HARM_CATEGORY_HARASSMENT',
-        threshold: 'BLOCK_MEDIUM_AND_ABOVE',
-      },
-      {
-        category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
-        threshold: 'BLOCK_LOW_AND_ABOVE',
-      },
-    ],
+  Given this context, suggest a list of commands that would be helpful to the user. Be specific and only suggest commands that would be immediately useful. Return the commands as a JSON array of strings.`,
 });
 
 const proactiveCommandSuggestionsFlow = ai.defineFlow(

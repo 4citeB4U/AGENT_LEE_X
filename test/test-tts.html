@@ -29,7 +29,7 @@
     <div id="status" class="muted"></div>
   </div>
 
-  <script type="module">
+  <script crossorigin="anonymous" type="module">
     // Prefer the local assets proxy when available so COEP/COOP and caching are under our control.
     // Dynamically import the proxied build first; fall back to the CDN only if needed.
     let tts = window['vits'] ?? null;

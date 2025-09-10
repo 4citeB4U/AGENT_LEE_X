@@ -1,4 +1,4 @@
-declare module 'https://cdn.jsdelivr.net/npm/kokoro-js@1/dist/kokoro.web.js' {
+declare module '/assets/cdn.jsdelivr.net/npm/kokoro-js@1/dist/kokoro.web.js' {
   const mod: any;
   export default mod;
   export = mod;

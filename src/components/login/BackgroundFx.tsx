@@ -31,10 +31,18 @@ export const BackgroundFx: React.FC = () => {
         brightGold: '#ffea80'
     };
     
-    const meshSize = 40;
-    const waveHeight = 30;
+    // Lighter defaults for smoother perf
+    let meshSize = 60;
+    let waveHeight = 24;
     const particles: any[] = [];
-    const particleCount = 200;
+    let particleCount = 120;
+    // Reduce work further on low DPR or when CPU is weak
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    if (dpr < 1.25) {
+      meshSize = 72;
+      particleCount = 90;
+      waveHeight = 20;
+    }
     
     for (let i = 0; i < particleCount; i++) {
         particles.push({
@@ -48,7 +56,12 @@ export const BackgroundFx: React.FC = () => {
         });
     }
     
+    // Throttle to ~30 FPS
+    let last = 0;
     function animate(time: number) {
+        const dt = time - last;
+        if (dt < 33) { requestAnimationFrame(animate); return; }
+        last = time;
         if (!ctx) return;
         ctx.clearRect(0, 0, width, height);
         
@@ -207,11 +220,18 @@ export const BackgroundFx: React.FC = () => {
     };
 
     window.addEventListener('resize', handleResize);
+    // Pause when tab hidden
+    const onVis = () => {
+      if (document.hidden) return;
+      last = 0;
+    };
+    document.addEventListener('visibilitychange', onVis);
     
     animate(0);
 
     return () => {
         window.removeEventListener('resize', handleResize);
+        document.removeEventListener('visibilitychange', onVis);
     }
   }, []);
 

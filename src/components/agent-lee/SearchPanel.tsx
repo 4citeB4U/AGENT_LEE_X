@@ -1,13 +1,13 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Globe, Search, ExternalLink, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { adaptiveLLMSelection } from '@/ai/flows/adaptive-llm-selection-flow';
+import { webSearch } from '@/lib/research/webSearch';
+import { searchOpenverse, OpenverseImage } from '@/lib/research/openverse';
 
 
 interface SearchResult {
@@ -20,50 +20,51 @@ interface SearchResult {
 export const SearchPanel: React.FC = () => {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [useLLM, setUseLLM] = useState(true);
   const [showPreview, setShowPreview] = useState(false);
   const [previewUrl, setPreviewUrl] = useState('');
+  const [query, setQuery] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const [summary, setSummary] = useState<string>("");
+  const [images, setImages] = useState<OpenverseImage[]>([]);
 
   const handleSearch = async (query: string) => {
     if (!query.trim()) return;
     
     setIsLoading(true);
     setResults([]);
+    setSummary("");
+    setImages([]);
 
     try {
-        if(useLLM) {
-            const llmResult = await adaptiveLLMSelection({ task: 'answer question from search', text: query });
-            toast({ title: 'LLM Result', description: <pre className="font-code whitespace-pre-wrap">{JSON.stringify(llmResult, null, 2)}</pre> });
-        }
+        // Always reason with LLM to form a research-oriented summary
+        const llmResult = await adaptiveLLMSelection({ task: 'answer question from search', text: query });
+        const llmText = typeof llmResult === 'string' ? llmResult : JSON.stringify(llmResult, null, 2);
+        setSummary(llmText);
 
-        // Simulate API call for regular search
-        setTimeout(() => {
-          const mockResults: SearchResult[] = [
-            {
-              id: '1',
-              title: 'Chicago Lakefront Events - Summer 2024',
-              url: 'https://example.com/chicago-events',
-              snippet: `Results for '${query}': Discover amazing summer events along Chicago's beautiful lakefront including concerts, festivals, and outdoor activities.`
-            },
-            {
-              id: '2',
-              title: 'Navy Pier Chicago - Official Website',
-              url: 'https://navypier.org',
-              snippet: 'Experience Chicago\'s iconic Navy Pier with attractions, dining, shopping, and year-round events on Lake Michigan.'
-            },
-          ];
-          setResults(mockResults);
-          setIsLoading(false);
-        }, 1000);
+        const data = await webSearch(query);
+        setResults(data.map((r, idx) => ({ id: String(idx+1), title: r.title, url: r.url, snippet: r.snippet })));
+
+        // Fetch image thumbnails from Openverse (free, no key)
+        const imgs = await searchOpenverse(query, 8).catch(()=>[]);
+        setImages(imgs);
+        setIsLoading(false);
 
     } catch (error) {
         console.error("Search failed:", error);
-        toast({
+        // Attempt graceful fallback: try web results only and synthesize a simple outline
+        try {
+          const data = await webSearch(query);
+          setResults(data.map((r, idx) => ({ id: String(idx+1), title: r.title, url: r.url, snippet: r.snippet })));
+          const outline = data.slice(0, 6).map((r, i) => `${i+1}. ${r.title} — ${r.snippet}`).join("\n\n");
+          setSummary(outline ? `Preliminary outline (no LLM available):\n\n${outline}` : "");
+        } catch (e2) {
+          toast({
             variant: "destructive",
             title: "Search Error",
             description: "Could not perform search."
-        })
+          });
+        }
         setIsLoading(false);
     }
   };
@@ -72,6 +73,15 @@ export const SearchPanel: React.FC = () => {
     setPreviewUrl(url);
     setShowPreview(true);
   };
+
+  // Focus search input when global search action is triggered (mic radial button)
+  useEffect(() => {
+    const onFocus = () => {
+      inputRef.current?.focus();
+    };
+    window.addEventListener('agentlee:focus-search', onFocus as any);
+    return () => window.removeEventListener('agentlee:focus-search', onFocus as any);
+  }, []);
 
   return (
     <div className="glass-panel rounded-2xl overflow-hidden shadow-luxury h-full flex flex-col">
@@ -85,20 +95,14 @@ export const SearchPanel: React.FC = () => {
         </div>
       </div>
 
-      <div className="p-4 border-b border-glass-border">
-        <div className="flex items-center gap-2">
-          <Switch 
-            id="llm-toggle" 
-            checked={useLLM} 
-            onCheckedChange={setUseLLM}
-          />
-          <Label htmlFor="llm-toggle" className="text-xs text-gold-muted">
-            Reason w/ LLM (for search summaries)
-          </Label>
+      <div className="p-4 border-b border-glass-border bg-white">
+        <div className="mt-3 flex items-center gap-2">
+          <Input id="agentlee_search_query" name="agentlee_search_query" ref={inputRef} value={query} onChange={(e)=>setQuery(e.target.value)} placeholder="Deep research query…" className="bg-white" onKeyDown={(e)=>{ if(e.key==='Enter'){ handleSearch(query); } }} />
+          <Button onClick={()=>handleSearch(query)} variant="default">Search</Button>
         </div>
       </div>
 
-      <div className="flex-1 min-h-0">
+      <div className="flex-1 min-h-0 bg-white">
         {showPreview ? (
           <div className="h-full flex flex-col">
             <div className="flex items-center justify-between p-3 border-b border-glass-border">
@@ -119,18 +123,38 @@ export const SearchPanel: React.FC = () => {
             />
           </div>
         ) : (
-          <ScrollArea className="h-full p-4">
+          <ScrollArea className="h-full p-4 bg-white">
             {isLoading ? (
               <div className="flex items-center justify-center py-8">
                 <div className="animate-spin w-6 h-6 border-2 border-gold-primary border-t-transparent rounded-full" />
                 <span className="ml-2 text-gold-muted">Searching...</span>
               </div>
             ) : results.length > 0 ? (
-              <div className="space-y-3">
+              <div className="space-y-5">
+                {summary && (
+                  <div className="p-3 border border-glass-border rounded-lg bg-gray-50">
+                    <h4 className="text-sm font-semibold text-gold-primary mb-1">LLM Research Summary</h4>
+                    <pre className="text-xs whitespace-pre-wrap text-gold-muted">{summary}</pre>
+                  </div>
+                )}
+
+                {images.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-semibold text-gold-primary mb-2">Images</h4>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                      {images.map(img => (
+                        <a key={img.id} href={img.url} target="_blank" rel="noopener noreferrer" className="block">
+                          <img src={img.thumbnail} alt={img.title} className="w-full h-28 object-cover rounded border border-glass-border" />
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {results.map((result) => (
                   <div
                     key={result.id}
-                    className="p-3 border border-glass-border rounded-lg hover:bg-emerald-accent/10 transition-colors cursor-pointer"
+                    className="p-3 border border-glass-border rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
                     onClick={() => openPreview(result.url)}
                   >
                     <div className="flex items-start justify-between gap-2">

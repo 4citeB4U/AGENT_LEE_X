@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "public",
+    "declaration": false,
+    "sourceMap": false,
+    "module": "ES2022",
+    "target": "ES2022",
+    "moduleResolution": "Bundler"
+  },
+  "include": ["public/kokoro-worker.ts"]
+}

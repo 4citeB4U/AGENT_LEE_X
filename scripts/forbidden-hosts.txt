@@ -1,0 +1,8 @@
+esm.sh
+cdn.jsdelivr.net
+unpkg.com
+cdn.skypack.dev
+cdnjs.cloudflare.com
+fonts.gstatic.com
+fonts.googleapis.com
+cdn.jsdelivr.xyz
