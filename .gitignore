@@ -22,3 +22,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Environment files (keep local secrets secure)
+.env
+.env.local
+.env.production
+.env.staging
