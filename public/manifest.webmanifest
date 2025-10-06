@@ -1,9 +1,9 @@
 {
-  "name": "Agent Lee Multitool",
-  "short_name": "Agent Lee",
-  "id": "/",
-  "start_url": "/",
-  "scope": "/",
+  "name": "Agent Lee X",
+  "short_name": "Agent Lee X",
+  "id": "/AGENT_LEE_X/",
+  "start_url": "/AGENT_LEE_X/",
+  "scope": "/AGENT_LEE_X/",
   "display": "standalone",
   "orientation": "any",
   "background_color": "#0f172a",
@@ -13,13 +13,13 @@
   "categories": ["productivity", "utilities", "communication"],
   "icons": [
     {
-      "src": "/images/icon-192.png",
+      "src": "./images/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/images/icon-512.png",
+      "src": "./images/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
@@ -30,19 +30,19 @@
       "name": "Research Desk",
       "short_name": "Research",
       "description": "Jump directly into the research toolkit.",
-      "url": "/?feature=research"
+      "url": "/AGENT_LEE_X/?feature=research"
     },
     {
       "name": "Story Studio",
       "short_name": "Text",
       "description": "Open the text generation canvas.",
-      "url": "/?feature=text"
+      "url": "/AGENT_LEE_X/?feature=text"
     },
     {
       "name": "Character Studio",
       "short_name": "Characters",
       "description": "Open the character studio for persona management and image creation.",
-      "url": "/?feature=character"
+      "url": "/AGENT_LEE_X/?feature=character"
     }
   ]
 }
