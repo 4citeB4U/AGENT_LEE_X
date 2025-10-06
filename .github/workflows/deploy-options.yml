@@ -1,0 +1,137 @@
+name: Agent Lee Multi-Deploy (Pages + Worker + Optional)
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Choose where to deploy"
+        required: true
+        default: "pages"
+        type: choice
+        options:
+          - pages
+          - worker
+          - both
+      env:
+        description: "Deployment environment"
+        required: false
+        default: "production"
+        type: choice
+        options:
+          - production
+          - staging
+          - preview
+
+  push:
+    branches:
+      - main
+      - feat/proxy-client-cdn-to-assets
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "deploy"
+  cancel-in-progress: true
+
+jobs:
+  select-env:
+    runs-on: ubuntu-latest
+    outputs:
+      deploy_target: ${{ github.event.inputs.target || 'pages' }}
+      deploy_env: ${{ github.event.inputs.env || 'production' }}
+      should_deploy_pages: ${{ github.event.inputs.target == 'pages' || github.event.inputs.target == 'both' || (github.event.inputs.target == '' && github.ref == 'refs/heads/main') }}
+      should_deploy_worker: ${{ github.event.inputs.target == 'worker' || github.event.inputs.target == 'both' || (github.event.inputs.target == '' && contains(github.ref, 'feat/proxy-client-cdn-to-assets')) }}
+    steps:
+      - name: Show chosen options
+        run: |
+          echo "Deploy Target: ${{ github.event.inputs.target || 'auto' }}"
+          echo "Environment: ${{ github.event.inputs.env || 'production' }}"
+          echo "Branch: ${{ github.ref }}"
+          echo "Should deploy pages: ${{ steps.set-outputs.outputs.should_deploy_pages }}"
+          echo "Should deploy worker: ${{ steps.set-outputs.outputs.should_deploy_worker }}"
+
+  deploy-pages:
+    needs: select-env
+    if: needs.select-env.outputs.should_deploy_pages == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Build application
+        run: npm run build
+        env:
+          VITE_GEMINI_API_KEY: ${{ secrets.API_KEY }}
+          NODE_ENV: ${{ needs.select-env.outputs.deploy_env }}
+          
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+        
+      - name: Upload to GitHub Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+          
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+        with:
+          timeout-minutes: 10
+
+  deploy-worker:
+    needs: select-env
+    if: needs.select-env.outputs.should_deploy_worker == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        
+      - name: Deploy Cloudflare Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CF_API_TOKEN }}
+          accountId: ${{ secrets.CF_ACCOUNT_ID }}
+          workingDirectory: cf-proxy
+          command: publish
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          NODE_ENV: ${{ needs.select-env.outputs.deploy_env }}
+          
+  deploy-summary:
+    needs: [select-env, deploy-pages, deploy-worker]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deployment Summary
+        run: |
+          echo "## 🚀 Agent Lee X Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Target:** ${{ needs.select-env.outputs.deploy_target }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Environment:** ${{ needs.select-env.outputs.deploy_env }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Results:" >> $GITHUB_STEP_SUMMARY
+          echo "- **GitHub Pages:** ${{ needs.deploy-pages.result || 'skipped' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Cloudflare Worker:** ${{ needs.deploy-worker.result || 'skipped' }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ needs.deploy-pages.result }}" == "success" ]; then
+            echo "✅ **Live Site:** https://4citeb4u.github.io/AGENT_LEE_X/" >> $GITHUB_STEP_SUMMARY
+          fi
+          if [ "${{ needs.deploy-worker.result }}" == "success" ]; then
+            echo "✅ **Worker Endpoint:** Check Cloudflare Dashboard for URL" >> $GITHUB_STEP_SUMMARY
+          fi
