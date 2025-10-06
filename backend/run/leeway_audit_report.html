@@ -1,0 +1,21 @@
+<!doctype html><html><head><meta charset="utf-8"/><title>LEEWAY Audit Report</title>
+<style>
+body{font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif;padding:24px;line-height:1.5}
+h1{margin:0 0 8px} h2{margin-top:24px;border-bottom:1px solid #eee;padding-bottom:4px}
+h3{margin-top:16px} table{border-collapse:collapse;width:100%;margin:8px 0}
+td,th{border:1px solid #e5e7eb;padding:6px 8px;font-size:14px;vertical-align:top}
+.ok{color:#16a34a}.bad{color:#dc2626}.pill{display:inline-block;border:1px solid #e5e7eb;border-radius:999px;padding:2px 8px;margin:2px 6px 2px 0}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+</style></head><body>
+<h1>LEEWAY Audit Report</h1><div class="mono">Generated: 2025-10-05T11:20:12.354Z</div>
+<h2>Frontend</h2>
+<div class="grid"><div><h3>Missing Headers</h3><p>None ✅</p></div>
+<div><h3>Files with Duplicate IDs</h3><p>None ✅</p></div></div>
+<div class="grid"><div><h3>Missing Required Assets</h3><ul><li>image/macmillionmic.png</li><li>image/macmillionmic2.png</li></ul></div>
+<div><h3>Missing Discovered Assets</h3><p>None ✅</p></div></div>
+<h2>Backend</h2>
+<div class="grid"><div><h3>Missing Headers</h3><p>None ✅</p></div>
+<div><h3>Missing Dirs</h3><ul><li>agentlee_mcp_hub/mcp</li><li>checkpoints/converter</li><li>checkpoints/base_speakers/EN</li><li>checkpoints/base_speakers/ZH</li><li>models</li><li>routes</li><li>scripts</li><li>tools</li><li>webrtc</li></ul></div></div>
+<div class="grid"><div><h3>Missing Python Packages</h3><ul><li>fastapi</li><li>uvicorn</li><li>structlog</li><li>pydantic</li><li>pydantic-settings</li><li>websockets</li><li>soundfile</li><li>scipy</li><li>numpy</li><li>ffmpeg-python</li><li>jieba</li></ul></div>
+<div><h3>Checkpoints Missing</h3><ul><li>converter: checkpoint.pth, config.json</li><li>EN: checkpoint.pth, config.json, en_default_se.pth, en_style_se.pth</li><li>ZH: checkpoint.pth, config.json, zh_default_se.pth</li></ul><p class="ok">FFmpeg: available</p></div></div>
+</body></html>

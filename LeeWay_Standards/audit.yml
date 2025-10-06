@@ -1,0 +1,60 @@
+name: LEEWAY Audit
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    name: Audit on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    env:
+      # Use repo-relative roots so this works cross-OS
+      LW_FRONTEND_ROOT: frontend
+      LW_BACKEND_ROOT: backend
+      LEEWAY_STRICT: "1"   # enable strict by default
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install TypeScript deps
+        run: npm ci
+
+      - name: Run Frontend Python Audit (strict)
+        run: |
+          python tools/leeway_frontend_audit_plus.py --strict=all --format=json
+
+      - name: Run Node Unified Audit (strict, all)
+        run: |
+          node tools/leeway_unified_audit.js --strict --report-html
+
+      - name: Upload audit artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: leeway-audit-artifacts-${{ matrix.os }}
+          path: |
+            ${{ github.workspace }}/frontend/run/leeway_frontend_audit_report.json
+            ${{ github.workspace }}/backend/run/leeway_audit_report.json
+            ${{ github.workspace }}/backend/run/leeway_audit_report.html

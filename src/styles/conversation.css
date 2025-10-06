@@ -1,0 +1,8 @@
+.conv-countdown { display: grid; gap: .5rem; }
+.conv-countdown__row { display: flex; align-items: center; gap: .75rem; }
+.conv-countdown__label { opacity: .9; }
+.conv-countdown__btn { padding: .4rem .75rem; border: 1px solid var(--surface-3,#333); border-radius: .5rem; background: var(--surface-1,#111); color: #fff; cursor: pointer; }
+.conv-countdown__btn[disabled] { opacity: .55; cursor: default; }
+.conv-countdown__bar { height: 6px; background: var(--surface-3,#333); border-radius: 999px; overflow: hidden; position: relative; }
+.conv-countdown__fill { height: 100%; background: var(--accent-5,#39FF14); transition: width .2s ease-out; width: 0; }
+[data-percent] > .conv-countdown__fill[data-fill] { width: calc(attr(data-percent percentage)); }

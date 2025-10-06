@@ -1,0 +1,60 @@
+<!--
+LEEWAY HEADER — DO NOT REMOVE
+REGION: UI.UNKNOWN
+COLOR_ONION_HEX: NEON=#39FF14 FLUO=#0DFF94 PASTEL=#C7FFD8
+ICON_ASCII: family=lucide glyph=layout-dashboard ICON_SIG=CD534113
+5WH: WHAT=Module: index.html; WHY=standardize; WHO=RapidWebDevelop; WHERE=F:\4leeway-multitool\index.html; WHEN=2025-10-05; HOW=React/Tailwind
+SIG: 00000000
+AGENTS: AZR, PHI3, GEMINI, QWEN, LLAMA, ECHO
+SPDX-License-Identifier: MIT
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta name="author" content="rapidwebdevelop.com, LEEWAY, LeonardLee" />
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LeeWay Multi Tool</title>
+  <link rel="icon" type="image/x-icon" href="/favicon-agent-lee.ico" />
+  <link rel="apple-touch-icon" href="/images/icon-512.png" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <!-- Local Tailwind build (replaces CDN) -->
+  <link rel="stylesheet" href="/src/styles/tailwind.css">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
+    
+    <!-- ADDED: Font Awesome for Notepad Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- File Parsing Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <script>pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js`;</script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+  <script type="importmap">
+{
+  "imports": {
+    "react/": "https://aistudiocdn.com/react@^19.1.1/",
+    "react": "https://aistudiocdn.com/react@^19.1.1",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.1.1/",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.19.0",
+    "onnxruntime-web": "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.15.1/dist/esm/ort.min.js",
+    "@xenova/transformers": "https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.1/dist/transformers.min.js"
+  }
+}
+</script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body class="bg-gray-900">
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>

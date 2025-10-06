@@ -1,0 +1,18 @@
+{
+  "headers_missing": [],
+  "duplicate_ids": {},
+  "duplicate_ids_lines": {},
+  "required_assets": {
+    "image/macmillionmic.png": false,
+    "image/macmillionmic2.png": false
+  },
+  "discovered_assets": {},
+  "root": "F:\\4leeway-multitool\\frontend",
+  "config": {
+    "strict": "",
+    "format": "json",
+    "max_header_lines": "120",
+    "workers": "node:sync",
+    "ignore_file": ""
+  }
+}

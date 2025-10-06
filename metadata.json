@@ -1,0 +1,8 @@
+{
+  "name": "Copy of Next steps? of 4LEEWAY-Multitool",
+  "description": "A versatile web application that bundles Text Generation, Image Generation, Chat, Media Analysis, and Web Research capabilities into a single, intuitive interface using the Gemini API.",
+  "requestFramePermissions": [
+    "microphone",
+    "camera"
+  ]
+}

@@ -1,0 +1,17 @@
+/* LEEWAY CANONICAL HEADER — DO NOT REMOVE
+TAG: FRONTEND.STYLES.TASKS
+COLOR_ONION_HEX: CORE=#1E293B|#334155 LAYER=#10B981|#F59E0B
+ICON_FAMILY: lucide
+ICON_GLYPH: paintbrush
+ICON_SIG: TASKS_CSS
+5WH: WHAT=Task checklist component styles; WHY=Extract inline styles for governance + reuse; WHO=Leeway Core; WHERE=src/styles/tasks.css; WHEN=2025-10-05; HOW=Utility classes + progressive enhancement
+SPDX-License-Identifier: MIT
+*/
+
+.task-checklist .progress-track { height:4px; background:#374151; border-radius:2px; position:relative; overflow:hidden; }
+.task-checklist .progress-bar { height:100%; background:#39FF14; border-radius:2px; transition:width .25s ease; width:0; }
+.task-checklist .progress-bar[data-pct] { width: attr(data-pct percentage); }
+/* Fallback for browsers lacking attr() in width: use JS enhancement (optional) */
+
+/* Step row deletion affordance */
+.task-checklist .task-detail li button[aria-label="Delete step"] { line-height:1; }

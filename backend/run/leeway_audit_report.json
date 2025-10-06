@@ -1,0 +1,41 @@
+{
+  "root": "F:\\4leeway-multitool\\backend",
+  "dirs": {},
+  "headers_missing": [],
+  "models": {
+    "present": [],
+    "flags": {
+      "azr": false,
+      "phi3": false,
+      "gemma": false,
+      "llama": false,
+      "voice": false
+    }
+  },
+  "checkpoints": {
+    "converter": {
+      "checkpoint.pth": false,
+      "config.json": false
+    },
+    "EN": {
+      "checkpoint.pth": false,
+      "config.json": false,
+      "en_default_se.pth": false,
+      "en_style_se.pth": false
+    },
+    "ZH": {
+      "checkpoint.pth": false,
+      "config.json": false,
+      "zh_default_se.pth": false
+    }
+  },
+  "requirements": {
+    "present": [],
+    "missing": [],
+    "requirements_file_exists": false
+  },
+  "ffmpeg_available": true,
+  "config": {
+    "strict": ""
+  }
+}

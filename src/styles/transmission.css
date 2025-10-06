@@ -1,0 +1,5 @@
+.tx-puck { position: fixed; right: 16px; bottom: 16px; display: inline-flex; align-items: center; gap: .5rem; padding: .5rem .75rem; border-radius: .75rem; background: var(--surface-1,#111); border: 1px solid var(--surface-3,#333); box-shadow: 0 4px 16px rgba(0,0,0,.25); color: #fff; z-index: 50; }
+.tx-puck__dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent-5,#39FF14); }
+.tx-puck__text { font-size: .9rem; }
+.tx-puck__close { border: none; background: transparent; font-size: 1rem; line-height: 1; cursor: pointer; color: #fff; }
+.tx-puck__close:hover { opacity: .75; }
