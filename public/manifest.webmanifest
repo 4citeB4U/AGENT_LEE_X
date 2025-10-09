@@ -1,7 +1,6 @@
 {
-  "name": "Agent Lee X",
-  "short_name": "Agent Lee X",
-  "id": "/AGENT_LEE_X/",
+  "name": "Agent Lee",
+  "short_name": "AgentLee",
   "start_url": "/AGENT_LEE_X/",
   "scope": "/AGENT_LEE_X/",
   "display": "standalone",
