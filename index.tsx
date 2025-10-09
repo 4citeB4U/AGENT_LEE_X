@@ -76,30 +76,25 @@ if ('serviceWorker' in navigator) {
 
   if (shouldRegister) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/sw.js').then(reg => {
+      const swUrl = `${import.meta.env.BASE_URL}sw.js`;
+      navigator.serviceWorker.register(swUrl).then(reg => {
         console.log('[SW] Registered:', reg.scope);
-
-        // Listen for updates
         reg.addEventListener('updatefound', () => {
-          const newWorker = reg.installing;
-          if (!newWorker) return;
-          newWorker.addEventListener('statechange', () => {
-            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+          const nw = reg.installing;
+          if (!nw) return;
+          nw.addEventListener('statechange', () => {
+            if (nw.state === 'installed' && navigator.serviceWorker.controller) {
               console.log('[SW] Update available');
-              // Optionally prompt user; here we auto-activate next reload:
-              // Send message to skip waiting so new version takes control sooner.
-              newWorker.postMessage({ type: 'SKIP_WAITING' });
+              nw.postMessage({ type: 'SKIP_WAITING' });
             }
           });
         });
-
-        // Refresh page when new SW activates
         let refreshing = false;
         navigator.serviceWorker.addEventListener('controllerchange', () => {
           if (refreshing) return;
-            refreshing = true;
-            console.log('[SW] Controller changed -> reloading for fresh assets');
-            window.location.reload();
+          refreshing = true;
+          console.log('[SW] Controller changed -> reloading for fresh assets');
+          window.location.reload();
         });
       }).catch(err => console.error('[SW] Registration failed', err));
     });
