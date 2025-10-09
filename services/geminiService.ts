@@ -16,18 +16,48 @@ import { geminiApiLimiter } from '../utils/rateLimiter'; // FIX: Import the API 
 
 // Get API key from environment with fallback checks
 const getApiKey = (): string => {
-  const apiKey = process.env.API_KEY || process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
+  // Check for environment variables first
+  const envApiKey = process.env.API_KEY || process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || process.env.AGENT_LEE_X;
   
-  if (!apiKey) {
-    console.error('Environment variables checked:', {
-      API_KEY: !!process.env.API_KEY,
-      GEMINI_API_KEY: !!process.env.GEMINI_API_KEY,
-      VITE_GEMINI_API_KEY: !!process.env.VITE_GEMINI_API_KEY
-    });
-    throw new Error("Gemini API key not found. Please set VITE_GEMINI_API_KEY environment variable.");
+  if (envApiKey) {
+    return envApiKey;
   }
   
-  return apiKey;
+  // Check for API key in localStorage as fallback for user-provided keys
+  const storedApiKey = typeof window !== 'undefined' ? localStorage.getItem('gemini_api_key') : null;
+  
+  if (storedApiKey) {
+    return storedApiKey;
+  }
+  
+  console.error('Environment variables checked:', {
+    API_KEY: !!process.env.API_KEY,
+    GEMINI_API_KEY: !!process.env.GEMINI_API_KEY,
+    VITE_GEMINI_API_KEY: !!process.env.VITE_GEMINI_API_KEY,
+    AGENT_LEE_X: !!process.env.AGENT_LEE_X,
+    localStorage_key: !!storedApiKey
+  });
+  
+  throw new Error("MISSING_API_KEY");
+};
+
+// Helper function to set API key from UI
+export const setApiKey = (apiKey: string): void => {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('gemini_api_key', apiKey);
+    // Reset the AI instance to use the new key
+    ai = new GoogleGenAI({ apiKey });
+  }
+};
+
+// Helper function to check if API key is available
+export const hasApiKey = (): boolean => {
+  try {
+    getApiKey();
+    return true;
+  } catch (error) {
+    return false;
+  }
 };
 
 let ai: GoogleGenAI;

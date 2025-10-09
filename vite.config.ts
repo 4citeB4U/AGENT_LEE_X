@@ -10,7 +10,6 @@ SPDX-License-Identifier: MIT
 
 import react from '@vitejs/plugin-react';
 import path from 'path';
-import pwasath from 'path';
 import { defineConfig, loadEnv } from 'vite';
 
 export default defineConfig(({ mode }) => {
@@ -19,8 +18,9 @@ export default defineConfig(({ mode }) => {
       plugins: [react()],
       base: '/AGENT_LEE_X/',
       define: {
-        'process.env.API_KEY': JSON.stringify(env.VITE_GEMINI_API_KEY || env.GEMINI_API_KEY),
-        'process.env.GEMINI_API_KEY': JSON.stringify(env.VITE_GEMINI_API_KEY || env.GEMINI_API_KEY)
+        'process.env.API_KEY': JSON.stringify(env.VITE_GEMINI_API_KEY || env.AGENT_LEE_X || env.GEMINI_API_KEY),
+        'process.env.GEMINI_API_KEY': JSON.stringify(env.VITE_GEMINI_API_KEY || env.AGENT_LEE_X || env.GEMINI_API_KEY),
+        'process.env.VITE_GEMINI_API_KEY': JSON.stringify(env.VITE_GEMINI_API_KEY || env.AGENT_LEE_X || env.GEMINI_API_KEY)
       },
       resolve: {
         alias: {

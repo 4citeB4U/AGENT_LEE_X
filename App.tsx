@@ -1244,7 +1244,7 @@ ACTIVE CHARACTER PROFILE (for consistency):
             padding-top: env(safe-area-inset-top, 0.5rem);
             padding-left: env(safe-area-inset-left, 0.5rem);
             padding-right: env(safe-area-inset-right, 0.5rem);
-            padding-bottom: 140px; /* Space for the fixed input bar */
+            padding-bottom: 160px; /* Increased space for the fixed input bar */
         }
         
         .left-pane, .app-container {
@@ -1253,7 +1253,22 @@ ACTIVE CHARACTER PROFILE (for consistency):
             flex-shrink: 1;
         }
 
+        /* Fix Agent Avatar visibility */
+        .left-pane {
+            order: 1;
+            margin-bottom: 1rem;
+        }
+        
+        .top-info-wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 1rem;
+            min-height: 120px; /* Ensure avatar has space */
+        }
+
         .app-container {
+            order: 2;
             padding: 1rem;
         }
         
@@ -1271,17 +1286,30 @@ ACTIVE CHARACTER PROFILE (for consistency):
             padding: 1rem;
         }
 
+        /* Improve tool interaction */
         .research-mode-selector {
-            flex-wrap: nowrap;
+            flex-wrap: wrap;
             justify-content: center;
             padding-bottom: 0.5rem;
+            gap: 1rem;
         }
         
         .research-mode-btn {
-            width: 56px;
-            height: 56px;
+            width: 72px; /* Larger for better touch targets */
+            height: 72px;
+            min-width: 72px;
         }
         
+        .app-tabs {
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem; /* More space between tabs */
+        }
+        
+        .app-tab-btn {
+            min-height: 80px; /* Better touch targets */
+        }
+        
+        /* Fix bottom controls and input */
         .bottom-controls-wrapper {
             position: fixed;
             bottom: 0;
@@ -1289,25 +1317,44 @@ ACTIVE CHARACTER PROFILE (for consistency):
             right: 0;
             z-index: 10;
             background: #000;
-            padding: 0.75rem;
-            padding-left: calc(0.75rem + env(safe-area-inset-left, 0rem));
-            padding-right: calc(0.75rem + env(safe-area-inset-right, 0rem));
-            padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0rem));
+            padding: 1rem;
+            padding-left: calc(1rem + env(safe-area-inset-left, 0rem));
+            padding-right: calc(1rem + env(safe-area-inset-right, 0rem));
+            padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0rem));
             border-top: 1px solid var(--border-color);
             box-shadow: 0 -4px 12px rgba(0,0,0,0.25);
         }
 
-        .central-input-bar textarea {
-            min-height: 38px;
+        .central-input-bar {
+            gap: 0.75rem;
+            padding: 0.75rem;
+            min-height: 60px; /* Ensure input area is visible */
         }
 
+        .central-input-bar textarea {
+            min-height: 44px; /* Better for mobile */
+            font-size: 16px; /* Prevent zoom on iOS */
+        }
+
+        /* Fix microphone button sizing */
         .input-buttons button, .note-picker-btn {
-            width: 38px;
-            height: 38px;
+            width: 48px; /* Larger touch target */
+            height: 48px;
+            min-width: 48px;
+            min-height: 48px;
+        }
+        
+        .input-buttons.horizontal {
+            gap: 0.75rem;
         }
     }
 
     @media (max-width: 480px) {
+        .leeway-multitool-wrapper {
+            padding: 0.25rem;
+            padding-bottom: 170px;
+        }
+        
         .app-header h1 {
             font-size: 1.25rem;
         }
@@ -1316,6 +1363,54 @@ ACTIVE CHARACTER PROFILE (for consistency):
         }
         .app-content-area:not(.no-surface) {
             padding: 0.75rem;
+        }
+        
+        /* Smaller screens adjustments */
+        .research-mode-btn {
+            width: 64px;
+            height: 64px;
+            min-width: 64px;
+        }
+        
+        .central-input-bar {
+            padding: 0.5rem;
+        }
+        
+        .input-buttons button, .note-picker-btn {
+            width: 44px;
+            height: 44px;
+            min-width: 44px;
+            min-height: 44px;
+        }
+    }
+    
+    /* Galaxy Fold specific optimizations */
+    @media (max-width: 344px) {
+        .app-tabs {
+            grid-template-columns: 1fr 1fr; /* Two columns for very narrow screens */
+        }
+        
+        .research-mode-selector {
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        
+        .research-mode-btn {
+            width: 56px;
+            height: 56px;
+            min-width: 56px;
+        }
+        
+        .central-input-bar textarea {
+            font-size: 14px;
+            min-height: 40px;
+        }
+        
+        .input-buttons button, .note-picker-btn {
+            width: 40px;
+            height: 40px;
+            min-width: 40px;
+            min-height: 40px;
         }
     }
     `;
