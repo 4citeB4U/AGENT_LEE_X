@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agent Lee X - Test Page</title>
+    <style>
+        body {
+            background: #1a1a1a;
+            color: white;
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Agent Lee X - Debug Test</h1>
+    <p>This is a test page to verify deployment is working.</p>
+    
+    <div id="debug-info">
+        <h2>Debug Information:</h2>
+        <p><strong>Current URL:</strong> <span id="current-url"></span></p>
+        <p><strong>Base URL should be:</strong> /AGENT_LEE_X/</p>
+        <p><strong>User Agent:</strong> <span id="user-agent"></span></p>
+        <p><strong>Timestamp:</strong> <span id="timestamp"></span></p>
+    </div>
+
+    <div id="asset-test">
+        <h2>Asset Loading Test:</h2>
+        <p>Testing if assets load correctly...</p>
+        <img id="test-image" src="./images/icon-192.png" alt="Test Image" 
+             onload="document.getElementById('image-status').textContent = '✅ Image loaded successfully'"
+             onerror="document.getElementById('image-status').textContent = '❌ Image failed to load'">
+        <p id="image-status">🔄 Loading image...</p>
+    </div>
+
+    <script>
+        document.getElementById('current-url').textContent = window.location.href;
+        document.getElementById('user-agent').textContent = navigator.userAgent;
+        document.getElementById('timestamp').textContent = new Date().toISOString();
+        
+        console.log('Test page loaded successfully');
+        console.log('Current URL:', window.location.href);
+        console.log('Expected base:', '/AGENT_LEE_X/');
+    </script>
+</body>
+</html>

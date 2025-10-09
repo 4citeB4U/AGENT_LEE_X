@@ -10,11 +10,7 @@
   "theme_color": "#0f172a",
   "description": "Operate Agent Lee across research, content generation, media analysis, and communications in a unified multitool workspace.",
   "lang": "en-US",
-  "categories": [
-    "productivity",
-    "utilities",
-    "communication"
-  ],
+  "categories": ["productivity", "utilities", "communication"],
   "icons": [
     {
       "src": "./images/icon-192.png",
@@ -27,16 +23,6 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
-    },
-    {
-      "src": "/AGENT_LEE_X/favicon-agent-lee.ico",
-      "sizes": "256x256",
-      "type": "image/x-icon"
-    },
-    {
-      "src": "/AGENT_LEE_X/favicon-agent-lee.ico",
-      "sizes": "256x256",
-      "type": "image/x-icon"
     }
   ],
   "shortcuts": [
