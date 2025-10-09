@@ -13,7 +13,8 @@ SPDX-License-Identifier: MIT
 import React from 'react';
 
 // Base path for images (using public directory for production builds)
-const getImageUrl = (name: string) => `/images/${name}`;
+// Use Vite's base URL to ensure compatibility with GitHub Pages
+const getImageUrl = (name: string) => `${import.meta.env.BASE_URL}images/${name}`;
 
 // Image configuration object for easy access
 export const images = {

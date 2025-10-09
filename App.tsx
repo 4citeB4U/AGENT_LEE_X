@@ -1399,7 +1399,7 @@ ACTIVE CHARACTER PROFILE (for consistency):
             <div className="leeway-multitool-wrapper">
                 <style>{styles}</style>
                 <div className="logo-watermark">
-                    <img src="/images/logo.png" alt="Logo" />
+                    <img src={images.logo} alt="Logo" />
                 </div>
                 
                 <div className="left-pane">

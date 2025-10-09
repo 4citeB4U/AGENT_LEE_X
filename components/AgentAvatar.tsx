@@ -9,6 +9,7 @@ SPDX-License-Identifier: MIT
 */
 
 import React from 'react';
+import { images } from '../src/assets/images';
 import type { AgentState } from '../types';
 
 interface AgentAvatarProps {
@@ -129,9 +130,9 @@ const AgentAvatar: React.FC<AgentAvatarProps> = ({ agentState }) => {
         <>
             <style>{styles}</style>
             <div className="avatar-container" aria-live="polite">
-                <img src="/images/Agent-Lee-Avatar.png" alt="Agent Lee avatar" className="avatar-image" />
+                <img src={images.agentLeeAvatar} alt="Agent Lee avatar" className="avatar-image" />
                 <div className="avatar-logo" aria-hidden="true">
-                    <img src="/images/logo.png" alt="LeeWay Multi Tool logo" />
+                    <img src={images.logo} alt="LeeWay Multi Tool logo" />
                 </div>
                 <span className={`status-pill ${currentStatus.className}`} aria-label={`Agent status: ${currentStatus.text}`}>
                     {currentStatus.text}
