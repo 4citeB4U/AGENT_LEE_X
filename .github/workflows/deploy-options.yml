@@ -76,7 +76,7 @@ jobs:
       - name: Build application
         run: npm run build
         env:
-          VITE_GEMINI_API_KEY: ${{ secrets.API_KEY }}
+          VITE_GEMINI_API_KEY: ${{ secrets.VITE_GEMINI_API_KEY }}
           NODE_ENV: ${{ needs.select-env.outputs.deploy_env }}
           
       - name: Setup Pages
@@ -107,7 +107,7 @@ jobs:
           workingDirectory: cf-proxy
           command: publish
         env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.VITE_GEMINI_API_KEY }}
           NODE_ENV: ${{ needs.select-env.outputs.deploy_env }}
           
   deploy-summary:
