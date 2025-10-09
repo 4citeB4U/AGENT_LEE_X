@@ -16,21 +16,16 @@
   ],
   "icons": [
     {
-      "src": "./images/icon-192.png",
+      "src": "/AGENT_LEE_X/images/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "./images/icon-512.png",
+      "src": "/AGENT_LEE_X/images/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
-    },
-    {
-      "src": "/AGENT_LEE_X/favicon-agent-lee.ico",
-      "sizes": "256x256",
-      "type": "image/x-icon"
     },
     {
       "src": "/AGENT_LEE_X/favicon-agent-lee.ico",
