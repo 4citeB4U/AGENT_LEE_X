@@ -12,6 +12,7 @@ import type { Chat } from '@google/genai'; // Import Chat type
 import React, { Suspense, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import AgentAvatar from './components/AgentAvatar';
 import AgentOutput from './components/AgentOutput'; // New component import
+import ApiKeyPrompt from './components/ApiKeyPrompt'; // Import API key prompt
 import CameraFeed, { CameraFeedHandle } from './components/CameraFeed';
 import InAppBrowser from './components/InAppBrowser';
 import LoadingSpinner from './components/LoadingSpinner';
@@ -117,6 +118,10 @@ const AppContent: React.FC = () => {
     const [isOnboardingComplete, setIsOnboardingComplete] = useState(() => localStorage.getItem('onboardingComplete') === 'true');
     const [placeholderText, setPlaceholderText] = useState('Awaiting orders...');
     const [userName, setUserName] = useState<string | null>(() => localStorage.getItem('userName'));
+    
+    // API Key management
+    const [showApiKeyPrompt, setShowApiKeyPrompt] = useState(false);
+    const [apiKeyError, setApiKeyError] = useState<string | null>(null);
 
     const [results, setResults] = useState({
         text: '',
@@ -488,6 +493,28 @@ const AppContent: React.FC = () => {
         });
     };
 
+    // Handle API key setting from user input
+    const handleApiKeySet = (apiKey: string) => {
+        try {
+            geminiService.setApiKey(apiKey);
+            setShowApiKeyPrompt(false);
+            setApiKeyError(null);
+            appendToLog('SYSTEM', 'API key configured successfully');
+        } catch (error) {
+            setApiKeyError('Failed to set API key. Please try again.');
+        }
+    };
+
+    // Check for API key errors and show prompt if needed
+    const handleApiKeyError = (error: any) => {
+        if (error?.message === 'MISSING_API_KEY') {
+            setShowApiKeyPrompt(true);
+            setApiKeyError('API key required to use Agent Lee');
+            return true; // Indicates error was handled
+        }
+        return false; // Let other errors bubble up
+    };
+
     // Unified mic/send button behavior (+ alt/meta opens zoom)
     const handleUnifiedMicButton = (e?: React.MouseEvent) => {
         if (e && (e.altKey || e.metaKey)) {
@@ -762,6 +789,13 @@ ACTIVE CHARACTER PROFILE (for consistency):
             );
 
         } catch (err: any) {
+            // Check if this is an API key error first
+            if (handleApiKeyError(err)) {
+                setAgentState('idle');
+                setLoading(false);
+                return; // Don't show generic error message for API key issues
+            }
+            
             const errorMessage = err?.message || 'An unknown error occurred.';
             setError(errorMessage);
             appendToLog('SYSTEM', `Error: ${errorMessage}`);
@@ -1483,6 +1517,9 @@ ACTIVE CHARACTER PROFILE (for consistency):
 
     return (
         <React.Fragment>
+            {showApiKeyPrompt && (
+                <ApiKeyPrompt onApiKeySet={handleApiKeySet} />
+            )}
             {!isOnboardingComplete && (
                 <OnboardingGuide
                     onComplete={handleOnboardingComplete}

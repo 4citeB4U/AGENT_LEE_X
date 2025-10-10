@@ -30,12 +30,13 @@ const getApiKey = (): string => {
     return storedApiKey;
   }
   
-  console.error('Environment variables checked:', {
-    API_KEY: !!process.env.API_KEY,
-    GEMINI_API_KEY: !!process.env.GEMINI_API_KEY,
-    VITE_GEMINI_API_KEY: !!process.env.VITE_GEMINI_API_KEY,
-    AGENT_LEE_X: !!process.env.AGENT_LEE_X,
-    localStorage_key: !!storedApiKey
+  console.error('DETAILED API KEY DEBUG:', {
+    'process.env.API_KEY': process.env.API_KEY,
+    'process.env.GEMINI_API_KEY': process.env.GEMINI_API_KEY, 
+    'process.env.VITE_GEMINI_API_KEY': process.env.VITE_GEMINI_API_KEY,
+    'process.env.AGENT_LEE_X': process.env.AGENT_LEE_X,
+    'localStorage_key': storedApiKey,
+    'all_process_env_keys': Object.keys(process.env).filter(key => key.includes('API') || key.includes('GEMINI') || key.includes('LEE'))
   });
   
   throw new Error("MISSING_API_KEY");
