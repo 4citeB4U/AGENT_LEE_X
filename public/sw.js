@@ -9,32 +9,45 @@ AGENTS: AZR, PHI3, GEMINI, QWEN, LLAMA, ECHO
 SPDX-License-Identifier: MIT
 */
 
-// PRODUCTION SERVICE WORKER (v5)
+// PRODUCTION SERVICE WORKER (v6)
 // Strategy:
 // - Precache core shell assets.
 // - Network-first for root and index.html (ensures updates propagate).
 // - Cache-first for static immutable assets (icons, manifest, favicon, built CSS/JS hashed files).
 // - Runtime cache (stale-while-revalidate) for images with size limit.
 
-const VERSION = 'v5';
+const VERSION = 'v6';
 const PRECACHE = `agent-lee-core-${VERSION}`;
 const RUNTIME = `agent-lee-runtime-${VERSION}`;
 
 // Core shell (adjust if build outputs differ)
+// Updated for GitHub Pages deployment with /AGENT_LEE_X/ base
 const PRECACHE_URLS = [
-  '/',
-  '/index.html',
-  '/manifest.webmanifest',
-  '/favicon-agent-lee.ico',
-  '/images/icon-192.png',
-  '/images/icon-512.png'
+  '/AGENT_LEE_X/',
+  '/AGENT_LEE_X/index.html',
+  '/AGENT_LEE_X/manifest.webmanifest',
+  '/AGENT_LEE_X/favicon-agent-lee.ico',
+  '/AGENT_LEE_X/images/icon-192.png',
+  '/AGENT_LEE_X/images/icon-512.png'
 ];
 
 self.addEventListener('install', event => {
   event.waitUntil(
     (async () => {
       const cache = await caches.open(PRECACHE);
-      await cache.addAll(PRECACHE_URLS);
+      try {
+        await cache.addAll(PRECACHE_URLS);
+      } catch (error) {
+        console.error('[SW] Cache addAll failed:', error);
+        // Try to cache individual files, skipping ones that fail
+        for (const url of PRECACHE_URLS) {
+          try {
+            await cache.add(url);
+          } catch (urlError) {
+            console.warn('[SW] Failed to cache:', url, urlError);
+          }
+        }
+      }
       await self.skipWaiting();
     })()
   );
@@ -64,8 +77,8 @@ self.addEventListener('fetch', event => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return; // Only same-origin
 
-  // Network-first for root and index.html
-  if (url.pathname === '/' || url.pathname === '/index.html') {
+  // Network-first for root and index.html (GitHub Pages paths)
+  if (url.pathname === '/AGENT_LEE_X/' || url.pathname === '/AGENT_LEE_X/index.html') {
     event.respondWith(
       fetch(request)
         .then(resp => {
@@ -89,8 +102,8 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // Icons / manifest / favicon -> cache-first
-  if (/^\/favicon-agent-lee\.ico$|^\/manifest\.webmanifest$|^\/images\/icon-(192|512)\.png$/.test(url.pathname)) {
+  // Icons / manifest / favicon -> cache-first (GitHub Pages paths)
+  if (/^\/AGENT_LEE_X\/favicon-agent-lee\.ico$|^\/AGENT_LEE_X\/manifest\.webmanifest$|^\/AGENT_LEE_X\/images\/icon-(192|512)\.png$/.test(url.pathname)) {
     event.respondWith(
       caches.match(request).then(cached => cached || fetch(request).then(resp => {
         caches.open(PRECACHE).then(c => c.put(request, resp.clone()));
