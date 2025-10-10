@@ -16,18 +16,19 @@ SPDX-License-Identifier: MIT
 // - Cache-first for static immutable assets (icons, manifest, favicon, built CSS/JS hashed files).
 // - Runtime cache (stale-while-revalidate) for images with size limit.
 
-const VERSION = 'v5';
+const VERSION = 'v6'; // Increment version to force update
 const PRECACHE = `agent-lee-core-${VERSION}`;
 const RUNTIME = `agent-lee-runtime-${VERSION}`;
 
-// Core shell (adjust if build outputs differ)
+// Core shell (use GitHub Pages base path)
+const BASE_URL = '/AGENT_LEE_X/';
 const PRECACHE_URLS = [
-  '/',
-  '/index.html',
-  '/manifest.webmanifest',
-  '/favicon-agent-lee.ico',
-  '/images/icon-192.png',
-  '/images/icon-512.png'
+  BASE_URL,
+  `${BASE_URL}index.html`,
+  `${BASE_URL}manifest.webmanifest`,
+  `${BASE_URL}favicon-agent-lee.ico`,
+  `${BASE_URL}images/icon-192.png`,
+  `${BASE_URL}images/icon-512.png`
 ];
 
 self.addEventListener('install', event => {
@@ -64,8 +65,8 @@ self.addEventListener('fetch', event => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return; // Only same-origin
 
-  // Network-first for root and index.html
-  if (url.pathname === '/' || url.pathname === '/index.html') {
+  // Network-first for root and index.html (updated for GitHub Pages base path)
+  if (url.pathname === BASE_URL || url.pathname === BASE_URL.slice(0, -1) || url.pathname === `${BASE_URL}index.html`) {
     event.respondWith(
       fetch(request)
         .then(resp => {
@@ -89,8 +90,8 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // Icons / manifest / favicon -> cache-first
-  if (/^\/favicon-agent-lee\.ico$|^\/manifest\.webmanifest$|^\/images\/icon-(192|512)\.png$/.test(url.pathname)) {
+  // Icons / manifest / favicon -> cache-first (updated for GitHub Pages base path)
+  if (new RegExp(`^${BASE_URL}favicon-agent-lee\\.ico$|^${BASE_URL}manifest\\.webmanifest$|^${BASE_URL}images/icon-(192|512)\\.png$`).test(url.pathname)) {
     event.respondWith(
       caches.match(request).then(cached => cached || fetch(request).then(resp => {
         caches.open(PRECACHE).then(c => c.put(request, resp.clone()));
