@@ -1244,16 +1244,19 @@ ACTIVE CHARACTER PROFILE (for consistency):
     .research-mode-btn.active::after { border-color: var(--accent-bg); box-shadow: 0 8px 16px rgba(212, 175, 55, 0.35); }
     .research-mode-btn:focus-visible { outline: 2px solid var(--accent-bg); outline-offset: 3px; }
     .bottom-controls-wrapper { display: flex; flex-direction: column; gap: 0.75rem; margin-top: auto; flex-shrink: 0; }
-    .central-input-bar { display: flex; gap: 0.5rem; background: #111; padding: 0.375rem; border-radius: 0.5rem; border: 1px solid var(--border-color); flex-grow: 1; align-items: center; }
-    .central-input-bar textarea { flex-grow: 1; background: #222; color: #f9fafb; border: 1px solid var(--border-color); border-radius: 0.5rem; padding: 0.5rem 0.75rem; font-size: 1rem; resize: none; min-height: 40px; }
+    .central-input-bar { display: flex; gap: 0.5rem; background: #111; padding: 0.375rem; border-radius: 0.5rem; border: 1px solid var(--border-color); flex-grow: 1; align-items: center; min-height: 52px; }
+    .central-input-bar textarea { flex-grow: 1; background: #222; color: #f9fafb; border: 1px solid var(--border-color); border-radius: 0.5rem; padding: 0.5rem 0.75rem; font-size: 1rem; resize: none; min-height: 40px; max-height: 120px; line-height: 1.4; }
     .central-input-bar textarea::placeholder { color: #d4af37a0; }
     .central-input-bar textarea:focus { outline: none; box-shadow: 0 0 0 2px var(--border-color); }
     .input-buttons { display: flex; flex-direction: column; justify-content: space-between; gap: 0.5rem; }
-    .input-buttons.horizontal { flex-direction: row; gap: 0.5rem; }
+    .input-buttons.horizontal { flex-direction: row; gap: 0.5rem; align-items: center; }
     .input-buttons button, .note-picker-btn { background: var(--accent-bg); color: var(--accent-text); border: none; border-radius: 0.5rem; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s ease; }
     .input-buttons button.mic-button { background-color: #444; color: white; }
     .input-buttons button.mic-button.always-on { box-shadow: 0 0 8px 2px rgba(212, 175, 55, 0.8); }
     .input-buttons button.mic-button.listening { background-color: #d43737; animation: pulse-red 1.5s infinite; box-shadow: none; }
+    .input-buttons button.send-button { background-color: #22c55e; color: white; }
+    .input-buttons button.send-button:hover { background-color: #16a34a; }
+    .input-buttons button svg { width: 20px; height: 20px; flex-shrink: 0; }
     @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(212, 55, 55, 0.7); } 70% { box-shadow: 0 0 0 8px rgba(212, 55, 55, 0); } 100% { box-shadow: 0 0 0 0 rgba(212, 55, 55, 0); } }
     .input-buttons button:hover, .note-picker-btn:hover { background: #b8860b; }
     .input-buttons button:disabled { background: #555; cursor: not-allowed; }
@@ -1359,8 +1362,8 @@ ACTIVE CHARACTER PROFILE (for consistency):
             bottom: 0;
             left: 0;
             right: 0;
-            z-index: 10;
-            background: #000;
+            z-index: 1000;
+            background: linear-gradient(to top, #000 0%, #000 80%, rgba(0,0,0,0.95) 90%, rgba(0,0,0,0.8) 100%);
             padding: 1rem;
             padding-left: calc(1rem + env(safe-area-inset-left, 0rem));
             padding-right: calc(1rem + env(safe-area-inset-right, 0rem));
@@ -1373,11 +1376,17 @@ ACTIVE CHARACTER PROFILE (for consistency):
             gap: 0.75rem;
             padding: 0.75rem;
             min-height: 60px; /* Ensure input area is visible */
+            background: #1a1a1a;
+            border: 2px solid var(--border-color);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
         }
 
         .central-input-bar textarea {
             min-height: 44px; /* Better for mobile */
             font-size: 16px; /* Prevent zoom on iOS */
+            background: #2a2a2a;
+            border: 1px solid #444;
+            color: #fff;
         }
 
         /* Fix microphone button sizing */
@@ -1386,6 +1395,11 @@ ACTIVE CHARACTER PROFILE (for consistency):
             height: 48px;
             min-width: 48px;
             min-height: 48px;
+        }
+        
+        .input-buttons button svg {
+            width: 24px;
+            height: 24px;
         }
         
         .input-buttons.horizontal {
@@ -1601,17 +1615,36 @@ ACTIVE CHARACTER PROFILE (for consistency):
                      onClick={(e) => handleUnifiedMicButton(e)}
                      onDoubleClick={() => { /* Explicit double-click finalize */ if (isListening) { const recognition = recognitionRef.current; if (recognition) { try { recognition.stop(); } catch(e) { console.warn('Double-click stop failed', e);} } } }}
                      onContextMenu={(e) => { e.preventDefault(); openMicZoom(); }}
-                     onMouseEnter={() => { if (isListening || isAlwaysListeningRef.current) return; if (window.matchMedia('(pointer: coarse)').matches) return; micHoverTimerRef.current = window.setTimeout(() => openMicZoom(false), 650); }}
-                     onMouseLeave={() => { if (micHoverTimerRef.current) { window.clearTimeout(micHoverTimerRef.current); micHoverTimerRef.current = null; } if (isMicZoomed) { setTimeout(() => { if (isMicZoomed) closeMicZoom(); }, 200); } }}
-                     onTouchStart={() => { if (micHoverTimerRef.current) window.clearTimeout(micHoverTimerRef.current); micHoverTimerRef.current = window.setTimeout(() => openMicZoom(), 700); }}
-                     onTouchEnd={() => { if (micHoverTimerRef.current) { window.clearTimeout(micHoverTimerRef.current); micHoverTimerRef.current = null; } }}
                                      className={`mic-button unified ${isAlwaysListening ? 'always-on' : ''} ${isListening ? 'listening' : ''}`}
                      aria-label={promptInput.trim() ? 'Send message' : (isListening ? 'Click again or double-click to send' : (isAlwaysListening ? 'Disable always-on microphone' : 'Enable push-to-talk'))}
                      title={promptInput.trim() ? 'Send message' : (isListening ? 'Click again or double-click to send' : (isAlwaysListening ? 'Disable always-on microphone' : 'Enable push-to-talk'))}
                                      disabled={!isOnboardingComplete}
                                  >
-                                    <img src={images.macMillionMic} alt="Close-up of MacMillian microphone" draggable={false} className="mic-image" />
+                                    {isListening ? (
+                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor"/>
+                                        </svg>
+                                    ) : (
+                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M12 2C13.1046 2 14 2.89543 14 4V12C14 13.1046 13.1046 14 12 14C10.8954 14 10 13.1046 10 12V4C10 2.89543 10.8954 2 12 2Z" fill="currentColor"/>
+                                            <path d="M19 10V12C19 16.4183 15.4183 20 11 20H9C7.89543 20 7 20.8954 7 22C7 23.1046 7.89543 24 9 24H11C17.0751 24 22 19.0751 22 13V10C22 8.89543 21.1046 8 20 8C18.8954 8 18 8.89543 18 10H19Z" fill="currentColor"/>
+                                            <path d="M5 10V12C5 16.4183 8.58172 20 13 20H15C16.1046 20 17 20.8954 17 22C17 23.1046 16.1046 24 15 24H13C6.92487 24 2 19.0751 2 13V10C2 8.89543 2.89543 8 4 8C5.10457 8 6 8.89543 6 10H5Z" fill="currentColor"/>
+                                        </svg>
+                                    )}
                                  </button>
+                                 {promptInput.trim() && (
+                                    <button
+                                        onClick={() => handleSubmit(promptInput)}
+                                        className="send-button"
+                                        disabled={!isOnboardingComplete}
+                                        aria-label="Send message"
+                                        title="Send message"
+                                    >
+                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M2.01 21L23 12L2.01 3L2 10L17 12L2 14L2.01 21Z" fill="currentColor"/>
+                                        </svg>
+                                    </button>
+                                 )}
                             </div>
                         </div>
                     </div>
