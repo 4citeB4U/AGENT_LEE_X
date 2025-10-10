@@ -119,8 +119,8 @@ const AppContent: React.FC = () => {
     const [placeholderText, setPlaceholderText] = useState('Awaiting orders...');
     const [userName, setUserName] = useState<string | null>(() => localStorage.getItem('userName'));
     
-    // API Key management
-    const [showApiKeyPrompt, setShowApiKeyPrompt] = useState(false);
+    // API Key management - check immediately on startup
+    const [showApiKeyPrompt, setShowApiKeyPrompt] = useState(() => !geminiService.hasApiKey());
     const [apiKeyError, setApiKeyError] = useState<string | null>(null);
 
     const [results, setResults] = useState({
@@ -806,7 +806,17 @@ ACTIVE CHARACTER PROFILE (for consistency):
     };
     
     const initializeChat = useCallback(() => {
-        chatRef.current = geminiService.createChat(userName || 'Operator');
+        try {
+            chatRef.current = geminiService.createChat(userName || 'Operator');
+        } catch (error: any) {
+            if (error?.message === 'MISSING_API_KEY') {
+                setShowApiKeyPrompt(true);
+                setApiKeyError('API key is required to use Agent Lee. Please enter your Google Gemini API key.');
+            } else {
+                console.error('Error initializing chat:', error);
+                setError('Failed to initialize chat service');
+            }
+        }
     }, [userName]);
 
     // Initialize optional local voice pipeline
