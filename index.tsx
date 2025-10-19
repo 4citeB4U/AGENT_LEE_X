@@ -13,6 +13,12 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 import './src/styles/tailwind.css';
 
+// In dev, redirect /AGENT_LEE_X/* to root to avoid 404s when using prod path locally
+if (import.meta.env.DEV && location.pathname.startsWith('/AGENT_LEE_X')) {
+  const newUrl = location.origin + '/' + (location.hash || '');
+  location.replace(newUrl);
+}
+
 // Force rebuild trigger for GitHub Pages fix
 
 // Simple error boundary that doesn't interfere with normal app operation

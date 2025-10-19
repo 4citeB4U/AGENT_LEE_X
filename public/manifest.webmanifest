@@ -1,8 +1,8 @@
 {
   "name": "Agent Lee",
   "short_name": "AgentLee",
-  "start_url": "/AGENT_LEE_X/",
-  "scope": "/AGENT_LEE_X/",
+  "start_url": ".",
+  "scope": ".",
   "display": "standalone",
   "orientation": "any",
   "background_color": "#0f172a",
@@ -16,19 +16,19 @@
   ],
   "icons": [
     {
-      "src": "/AGENT_LEE_X/images/icon-192.png",
+      "src": "images/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/AGENT_LEE_X/images/icon-512.png",
+      "src": "images/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/AGENT_LEE_X/favicon-agent-lee.ico",
+      "src": "favicon-agent-lee.ico",
       "sizes": "256x256",
       "type": "image/x-icon"
     }
