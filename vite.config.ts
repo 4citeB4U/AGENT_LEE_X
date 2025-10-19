@@ -21,6 +21,7 @@ export default defineConfig(({ mode }) => {
       // Keep GitHub Pages base in build/preview
       base: isDev ? '/' : '/AGENT_LEE_X/',
       define: {
+          __BUILD_ID__: JSON.stringify(process.env.GITHUB_SHA || process.env.VERCEL_GIT_COMMIT_SHA || Date.now().toString()),
         'process.env.API_KEY': JSON.stringify(env.VITE_GEMINI_API_KEY || env.AGENT_LEE_X || env.GEMINI_API_KEY),
         'process.env.GEMINI_API_KEY': JSON.stringify(env.VITE_GEMINI_API_KEY || env.AGENT_LEE_X || env.GEMINI_API_KEY),
         'process.env.VITE_GEMINI_API_KEY': JSON.stringify(env.VITE_GEMINI_API_KEY || env.AGENT_LEE_X || env.GEMINI_API_KEY)

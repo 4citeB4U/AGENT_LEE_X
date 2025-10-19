@@ -12,9 +12,29 @@ SPDX-License-Identifier: MIT
 // This file provides a single source of truth for all image assets
 import React from 'react';
 
-// Base path for images (using public directory for production builds)
-// Use Vite's base URL to ensure compatibility with GitHub Pages
-const getImageUrl = (name: string) => `${import.meta.env.BASE_URL}images/${name}`;
+// Build/version identifier injected by Vite (defined in vite.config.ts). Used for cache-busting.
+// Declared here to avoid TS errors when not defined in certain tooling contexts.
+declare const __BUILD_ID__: string;
+
+// Resolve the BASE URL robustly. Prefer Vite's BASE_URL, but fall back to a
+// location-derived subpath (e.g., when viewing a built site on GitHub Pages) if needed.
+const resolveBaseUrl = (): string => {
+  try {
+    const base = (import.meta as any)?.env?.BASE_URL ?? import.meta.env.BASE_URL;
+    if (base && base !== '/' && base !== '') return base;
+  } catch {}
+  try {
+    if (typeof location !== 'undefined') {
+      // Detect common GH Pages subpath pattern
+      if (location.pathname.startsWith('/AGENT_LEE_X/')) return '/AGENT_LEE_X/';
+    }
+  } catch {}
+  return '/';
+};
+
+// Lightweight cache-busting to avoid stale images after deploys and SW updates
+const BUILD_ID = (typeof __BUILD_ID__ !== 'undefined' ? __BUILD_ID__ : (import.meta.env?.PROD ? 'prod' : 'dev'));
+const getImageUrl = (name: string) => `${resolveBaseUrl()}images/${name}?v=${BUILD_ID}`;
 
 // Image configuration object for easy access
 export const images = {
