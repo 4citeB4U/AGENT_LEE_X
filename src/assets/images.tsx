@@ -20,6 +20,8 @@ const getImageUrl = (name: string) => `${import.meta.env.BASE_URL}images/${name}
 export const images = {
   // Agent and Avatars
   agentLeeAvatar: getImageUrl('Agent-Lee-Avatar.png'),
+  agentButton: getImageUrl('agent_button.png'),
+  cameraFeed: getImageUrl('camera_feed.png'),
   
   // Branding
   logo: getImageUrl('logo.png'),

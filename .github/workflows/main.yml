@@ -24,9 +24,14 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
-      - run: npm run build
+      - name: Profitability Gate
+        run: npm run profit:gate
         env:
-          VITE_GEMINI_API_KEY: ${{ secrets.VITE_GEMINI_API_KEY }}
+          MIN_ROAS: 4
+          MIN_LTV_CAC: 3
+          MAX_CAC: 120
+          MKTG_SNAPSHOT: ./data/snapshots/last.json
+      - run: npm run build
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

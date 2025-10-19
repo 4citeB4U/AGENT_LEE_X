@@ -132,6 +132,9 @@ const CameraFeed = forwardRef<CameraFeedHandle, CameraFeedProps>(({ onCameraEnab
         .video-feed-canvas { 
             width: 100%; height: 100%; object-fit: cover;
         }
+        .video-hidden { display: none; }
+        .canvas-hidden { visibility: hidden; }
+        .canvas-visible { visibility: visible; }
         .camera-error-overlay, .camera-prompt-overlay {
             position: absolute; top: 0; left: 0; right: 0; bottom: 0;
             display: flex; flex-direction: column;
@@ -178,8 +181,10 @@ const CameraFeed = forwardRef<CameraFeedHandle, CameraFeedProps>(({ onCameraEnab
             <div className="camera-feed-container">
                 <h3 className="camera-feed-header">Visual Feed</h3>
                 <div className="video-wrapper">
-                    <video ref={videoRef} playsInline className="hidden" />
-                    <canvas ref={canvasRef} className={"video-feed-canvas " + (isCameraActive ? 'block' : 'hidden')} />
+                    {/* Keep the <video> element for stream source, but always hide it to avoid duplicate display */}
+                    <video ref={videoRef} playsInline className="video-hidden" />
+                    {/* Show only the processed canvas; toggle visibility without relying on Tailwind classes */}
+                    <canvas ref={canvasRef} className={`video-feed-canvas ${isCameraActive ? 'canvas-visible' : 'canvas-hidden'}`} />
                     
                     {!isCameraActive && (
                         <>

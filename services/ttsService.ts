@@ -10,7 +10,7 @@ SPDX-License-Identifier: MIT
 
 // services/ttsService.ts
 // FIX: The function `cleanTextForSpeech` was renamed to `finalizeSpokenOutput`. Updated the import.
-import { finalizeSpokenOutput } from '../src/prompts'; // Import the centralized text cleaner
+import { finalizeSpokenOutput } from '../src/agentlee.core'; // Use unified core sanitizer
 // OPTIONAL new cadence TTS (front-end only) integration
 import * as LeeCadence from '../src/voice/leeTTS';
 

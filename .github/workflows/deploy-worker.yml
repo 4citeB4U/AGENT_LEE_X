@@ -15,12 +15,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      - name: Publish Worker
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CF_API_TOKEN }}
-          accountId: ${{ secrets.CF_ACCOUNT_ID }}
-          workingDirectory: cf-proxy
-          command: publish
-        env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      - name: Deploy Cloudflare Worker (placeholder)
+        run: echo "Skipping worker deploy in placeholder workflow"
+
+      - name: Instructions
+        run: |
+          echo "This repository includes a Cloudflare Worker under cf-proxy/."
+          echo "To enable automated deploys, restore the wrangler-action step with CF_API_TOKEN and CF_ACCOUNT_ID."
+          echo "This placeholder workflow intentionally contains no secret references to avoid IDE warnings."

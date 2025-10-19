@@ -1,11 +1,11 @@
 /*
-LEEWAY HEADER — DO NOT REMOVE
-REGION: UI.UNKNOWN
+LEEWAY HEADER
+TAG: FRONTEND.PWA.SERVICE_WORKER
 COLOR_ONION_HEX: NEON=#39FF14 FLUO=#0DFF94 PASTEL=#C7FFD8
-ICON_ASCII: family=lucide glyph=layout-dashboard ICON_SIG=CD534113
-5WH: WHAT=Module: sw.js; WHY=standardize; WHO=RapidWebDevelop; WHERE=F:\4leeway-multitool\public\sw.js; WHEN=2025-10-05; HOW=React/Tailwind
-SIG: 00000000
-AGENTS: AZR, PHI3, GEMINI, QWEN, LLAMA, ECHO
+ICON_FAMILY: lucide
+ICON_GLYPH: hard-drive-download
+ICON_SIG: CD534113
+5WH: WHAT=Production service worker for SPA; WHY=PWA caching & offline behavior; WHO=Leeway Core; WHERE=public/sw.js; WHEN=2025-10-19; HOW=Service Worker API
 SPDX-License-Identifier: MIT
 */
 

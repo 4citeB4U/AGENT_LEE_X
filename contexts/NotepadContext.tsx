@@ -11,7 +11,8 @@ SPDX-License-Identifier: MIT
 
 
 
-import React, { createContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, ReactNode, useEffect, useRef, useState } from 'react';
+import memoryStore, { type BaseItem } from '../src/lib/memoryStore';
 import type { Note, NoteContent } from '../types';
 
 interface NotepadContextType {
@@ -38,89 +39,142 @@ export const NotepadContext = createContext<NotepadContextType>({
 
 const initialNotes: Note[] = [];
 
+// Deterministic 32-bit hash for mapping string ids to numeric ids used by legacy consumers
+function hashToInt(id: string): number {
+    let h = 0;
+    for (let i = 0; i < id.length; i++) {
+        h = (h << 5) - h + id.charCodeAt(i);
+        h |= 0; // 32-bit
+    }
+    // Make positive and add a high bit to reduce collision with Date.now ids
+    return Math.abs(h) + 1_000_000_000;
+}
+
+function osToNote(item: BaseItem): Note {
+    const numericId = hashToInt(item.id);
+    // Project content as editable text first; richer types can be handled via artifacts if needed
+    const text = item.utterance || '';
+    const content: NoteContent = { type: 'text', text };
+    const tag = item.tags[0] || 'CONFIDENTIAL';
+    const date = new Date(item.updated || item.created).toLocaleString();
+    return { id: numericId, title: item.title, date, tag, content };
+}
+
 
 export const NotepadProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-    const [notes, setNotes] = useState<Note[]>(() => {
-        try {
-            const localData = localStorage.getItem('agent-lee-notes');
-            if (!localData) return initialNotes;
+    const [notes, setNotes] = useState<Note[]>(initialNotes);
+    const [activeNoteId, setActiveNoteIdState] = useState<number | null>(null);
 
-            let parsedData = JSON.parse(localData);
-            
-            // FIX: Add validation to prevent crashes from malformed data
-            if (Array.isArray(parsedData)) {
-                const validNotes = parsedData.filter(note => 
-                    note &&
-                    typeof note === 'object' &&
-                    'id' in note &&
-                    'title' in note &&
-                    'content' in note &&
-                    typeof note.content === 'object' &&
-                    note.content !== null &&
-                    'type' in note.content
-                );
-                return validNotes;
+    // Map numeric id <-> OS id for operations
+    const numToOsIdRef = useRef<Map<number, string>>(new Map());
+    const osIdToNumRef = useRef<Map<string, number>>(new Map());
+
+    // Project OS -> UI notes and maintain id maps
+    const refreshFromStore = () => {
+        const items = memoryStore.list({ drive: 'R' });
+        const projected = items.map(osToNote);
+        const numToOs = new Map<number, string>();
+        const osToNum = new Map<string, number>();
+        for (const it of items) {
+            const nId = hashToInt(it.id);
+            numToOs.set(nId, it.id);
+            osToNum.set(it.id, nId);
+        }
+        numToOsIdRef.current = numToOs;
+        osIdToNumRef.current = osToNum;
+        setNotes(projected);
+        // Sync active id
+        const active = memoryStore.getActive();
+        if (active) setActiveNoteIdState(osToNum.get(active.id) || null);
+        else if (projected.length > 0) setActiveNoteIdState(projected[0].id);
+        else setActiveNoteIdState(null);
+    };
+
+    useEffect(() => {
+        // Initial hydration from store and subscribe
+        refreshFromStore();
+        const unsub = memoryStore.subscribe(() => refreshFromStore());
+        return () => { try { unsub(); } catch {} };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    const setActiveNoteId = (id: number | null) => {
+        setActiveNoteIdState(id);
+        const osId = id != null ? numToOsIdRef.current.get(id) : undefined;
+        memoryStore.setActive(osId);
+    };
+
+    const addNote = async (title: string, content: NoteContent, tag: string = 'CONFIDENTIAL') => {
+        // Map content -> utterance + artifacts
+        let utterance = '';
+        const tags = [tag, 'notepad'].filter(Boolean);
+        try {
+            switch (content.type) {
+                case 'text':
+                    utterance = content.text || '';
+                    break;
+                case 'image':
+                    utterance = `Image: ${content.prompt || ''}`;
+                    break;
+                case 'research':
+                case 'analysis':
+                case 'call':
+                    utterance = content.text || '';
+                    break;
+                case 'memory':
+                    utterance = `USER: ${content.userPrompt}\nAGENT: ${content.agentResponse}`;
+                    break;
             }
-            return initialNotes;
-        } catch (error) {
-            console.error("Could not parse notes from localStorage", error);
-            return initialNotes;
+            const created = await memoryStore.createTask(title, { utterance, tags });
+            if (content.type === 'image' && content.imageUrl) {
+                await memoryStore.attachArtifacts(created.id, [{ name: 'image.url', text: content.imageUrl, type: 'image/url' }]);
+            }
+            // refresh is handled by subscription; set active id to created
+            const maybeNum = osIdToNumRef.current.get(created.id) || hashToInt(created.id);
+            setActiveNoteId(maybeNum);
+        } catch (e) {
+            console.warn('Failed to add note via memory store', e);
         }
-    });
-    
-    const [activeNoteId, setActiveNoteId] = useState<number | null>(null);
+    };
 
-    useEffect(() => {
+    const updateNote = async (updatedNote: Note) => {
+        const osId = numToOsIdRef.current.get(updatedNote.id);
+        if (!osId) return;
+        // Only text content is editable in current UI
+        let utterance: string | undefined;
+        if (updatedNote.content.type === 'text') utterance = updatedNote.content.text;
         try {
-            localStorage.setItem('agent-lee-notes', JSON.stringify(notes));
-        } catch (error) {
-            console.error("Could not save notes to localStorage", error);
-        }
-    }, [notes]);
-
-    // Effect to set an initial active note or handle deletion
-    useEffect(() => {
-        if (notes.length > 0 && (activeNoteId === null || !notes.find(n => n.id === activeNoteId))) {
-            setActiveNoteId(notes[0].id);
-        } else if (notes.length === 0) {
-            setActiveNoteId(null);
-        }
-    }, [notes, activeNoteId]);
-
-
-    const addNote = (title: string, content: NoteContent, tag: string = 'CONFIDENTIAL') => {
-        const newNote: Note = {
-            id: Date.now(),
-            title,
-            date: new Date().toLocaleString(),
-            tag,
-            content,
-        };
-        setNotes(prevNotes => [newNote, ...prevNotes]);
-        setActiveNoteId(newNote.id);
-    };
-
-    const updateNote = (updatedNote: Note) => {
-        setNotes(notes.map(note => (note.id === updatedNote.id ? {...updatedNote, date: new Date().toLocaleString() } : note)));
-    };
-
-    const deleteNote = (id: number) => {
-        if (window.confirm('Are you sure you want to delete this note? This action cannot be undone.')) {
-            setNotes(notes.filter(note => note.id !== id));
+            await memoryStore.update(osId, { title: updatedNote.title, utterance });
+        } catch (e) {
+            console.warn('Failed to update note', e);
         }
     };
 
-    const deleteAllNotes = () => {
-        if (window.confirm('Are you sure you want to delete ALL notes? This action is permanent and cannot be undone.')) {
-            setNotes([]);
+    const deleteNote = async (id: number) => {
+        if (!window.confirm('Are you sure you want to delete this note? This action cannot be undone.')) return;
+        const osId = numToOsIdRef.current.get(id);
+        if (!osId) return;
+        try {
+            await memoryStore.recycle(osId);
+        } catch (e) {
+            console.warn('Failed to recycle note', e);
         }
     };
 
-    const importNotes = (importedNotes: Note[]) => {
-        // A simple import strategy: append new notes, avoiding direct ID clashes
-        const existingIds = new Set(notes.map(n => n.id));
-        const notesToAppend = importedNotes.filter(n => !existingIds.has(n.id));
-        setNotes(prev => [...prev, ...notesToAppend]);
+    const deleteAllNotes = async () => {
+        if (!window.confirm('Are you sure you want to delete ALL notes? This action is permanent and cannot be undone.')) return;
+        const items = memoryStore.list({ drive: 'R' });
+        for (const it of items) {
+            try { await memoryStore.recycle(it.id); } catch {}
+        }
+    };
+
+    const importNotes = async (importedNotes: Note[]) => {
+        for (const n of importedNotes) {
+            try {
+                await addNote(n.title, n.content, n.tag);
+            } catch {}
+        }
     };
 
     return (

@@ -1,20 +1,20 @@
 /*
-LEEWAY HEADER — DO NOT REMOVE
-REGION: UI.UNKNOWN
+LEEWAY HEADER
+TAG: FRONTEND.COMPONENT.ONBOARDING_GUIDE
 COLOR_ONION_HEX: NEON=#39FF14 FLUO=#0DFF94 PASTEL=#C7FFD8
-ICON_ASCII: family=lucide glyph=layout-dashboard ICON_SIG=CD534113
-5WH: WHAT=Module: OnboardingGuide.tsx; WHY=standardize; WHO=RapidWebDevelop; WHERE=F:\4leeway-multitool\components\OnboardingGuide.tsx; WHEN=2025-10-05; HOW=React/Tailwind
-SIG: 00000000
-AGENTS: AZR, PHI3, GEMINI, QWEN, LLAMA, ECHO
+ICON_FAMILY: lucide
+ICON_GLYPH: compass
+ICON_SIG: CD534113
+5WH: WHAT=Guided onboarding overlay and tour; WHY=First-run education & setup; WHO=Leeway Core; WHERE=components/OnboardingGuide.tsx; WHEN=2025-10-19; HOW=React
 SPDX-License-Identifier: MIT
 */
 
-import React, { useState, useEffect, useRef } from 'react';
-import Spotlight from './Spotlight';
-import { onboardingScript } from '../src/onboarding-script';
+import React, { useEffect, useRef, useState } from 'react';
 import * as ttsService from '../services/ttsService';
-import { finalizeSpokenOutput } from '../src/prompts';
+import { finalizeSpokenOutput } from '../src/agentlee.core';
+import { onboardingScript } from '../src/onboarding-script';
 import type { Feature } from '../types';
+import Spotlight from './Spotlight';
 
 interface OnboardingGuideProps {
     onComplete: () => void;

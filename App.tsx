@@ -10,8 +10,7 @@ SPDX-License-Identifier: MIT
 
 import type { Chat } from '@google/genai'; // Import Chat type
 import React, { Suspense, useCallback, useContext, useEffect, useRef, useState } from 'react';
-import AgentAvatar from './components/AgentAvatar';
-import AgentOutput from './components/AgentOutput'; // New component import
+// Removed AgentOutput per request
 import ApiKeyPrompt from './components/ApiKeyPrompt'; // Import API key prompt
 import CameraFeed, { CameraFeedHandle } from './components/CameraFeed';
 import InAppBrowser from './components/InAppBrowser';
@@ -25,18 +24,18 @@ import { NotepadContext, NotepadProvider } from './contexts/NotepadContext';
 import * as geminiService from './services/geminiService';
 // Autosave & storage layer
 import * as ttsService from './services/ttsService'; // Import TTS Service
+import { finalizeSpokenOutput } from './src/agentlee.core'; // Use unified core sanitizer
 import images from './src/assets/images';
-import ConversationCountdown from './src/components/ConversationCountdown';
 import FlushPuckHost from './src/components/FlushPuckHost';
-import SavedBadge from './src/components/SavedBadge';
+import SensorIntentBanner from './src/components/SensorIntentBanner';
 import { useConversationAutosave } from './src/hooks/useConversationAutosave';
 import { receiptsLine } from './src/lib/agent/memoryReceipts';
 import { mapFreeformReply } from './src/lib/agent/replyMapper';
 import { emitConversationFlushed } from './src/lib/conversation/flush';
+import memoryStore from './src/lib/memoryStore';
 import { Autosave, buildSnapshot } from './src/lib/storage/autosave';
 import type { SavedPayload } from './src/lib/storage/types';
 import { addTurn as memAddTurn, retrieveContext as memRetrieve, upsertNote as memUpsert, proposeNoteFromRecent } from './src/memory/memoryStore';
-import { finalizeSpokenOutput } from './src/prompts'; // Import the centralized text cleaner
 import type { AgentState, Contact, Feature, GroundingChunk, Note, NoteContent, ResearchMode, TransmissionLogEntry } from './types';
 import { parseFile } from './utils/fileParser';
 import { mdToHtml } from './utils/markdown';
@@ -57,6 +56,7 @@ const CommunicationControl = React.lazy(() => import('./components/Communication
 const EmailClient = React.lazy(() => import('./components/EmailClient'));
 const AgentNotepad = React.lazy(() => import('./components/AgentNotepad'));
 const Settings = React.lazy(() => import('./components/Settings'));
+const RecycleBinPanel = React.lazy(() => import('./components/RecycleBinPanel'));
 const CharacterStudio = React.lazy(() => import('./components/CharacterStudio'));
 
 
@@ -147,6 +147,13 @@ const AppContent: React.FC = () => {
     const [browserUrl, setBrowserUrl] = useState<string | null>(null);
     // NEW: Microphone zoom overlay state
     const [isMicZoomed, setIsMicZoomed] = useState(false);
+    
+    // NEW: Header button states
+    const [showCharacterStudio, setShowCharacterStudio] = useState(false);
+    const [showCameraFeed, setShowCameraFeed] = useState(false);
+    const [showConversationHistory, setShowConversationHistory] = useState(false);
+    const [showRecycleBin, setShowRecycleBin] = useState(false);
+    
     const micHoverTimerRef = useRef<number | null>(null);
     const openMicZoom = useCallback((log: boolean = true) => { setIsMicZoomed(true); if (log) appendToLog('SYSTEM', '[System: Microphone detail view opened]'); }, []);
     const closeMicZoom = useCallback(() => { if (micHoverTimerRef.current) { window.clearTimeout(micHoverTimerRef.current); micHoverTimerRef.current = null; } setIsMicZoomed(false); appendToLog('SYSTEM', '[System: Microphone detail view closed]'); }, []);
@@ -155,6 +162,11 @@ const AppContent: React.FC = () => {
 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+
+    // Boot Notepad OS once
+    useEffect(() => {
+        memoryStore.init({ recycleDays: 7 });
+    }, []);
     const [researchMode, setResearchMode] = useState<ResearchMode>('general');
 
     const cameraFeedRef = useRef<CameraFeedHandle>(null);
@@ -1212,16 +1224,197 @@ ACTIVE CHARACTER PROFILE (for consistency):
     body.theme-midnight { --bg-gradient: linear-gradient(135deg, #1a202c 0%, #2d3748 100%); --text-primary: #e2e8f0; --text-secondary: #63b3ed; --border-color: #4a5568; --accent-bg: #63b3ed; --accent-text: #1a202c; }
     body.theme-slate { --bg-gradient: linear-gradient(135deg, #334155 0%, #475569 100%); --text-primary: #f1f5f9; --text-secondary: #a78bfa; --border-color: #64748b; --accent-bg: #a78bfa; --accent-text: #1e293b; }
     body.theme-nebula { --bg-gradient: linear-gradient(135deg, #4c1d95 0%, #5b21b6 100%); --text-primary: #f5f3ff; --text-secondary: #f472b6; --border-color: #7c3aed; --accent-bg: #f472b6; --accent-text: #4c1d95; }
-    .leeway-multitool-wrapper { width: 100%; height: 100%; background: var(--bg-gradient); display: flex; flex-direction: row; gap: 1rem; align-items: stretch; padding: 1rem; color: var(--text-primary); font-family: 'Inter', sans-serif; overflow: hidden; position: relative; }
+    .leeway-multitool-wrapper { width: 100%; height: 100%; background: var(--bg-gradient); display: flex; flex-direction: row; gap: 1rem; align-items: stretch; padding: 1rem; color: var(--text-primary); font-family: 'Inter', sans-serif; overflow-x: hidden; overflow-y: auto; position: relative; }
     .logo-watermark { position: absolute; top: 1rem; left: 1rem; z-index: 10; opacity: 0.55; transition: opacity 0.3s ease; pointer-events: none; }
     .logo-watermark img { width: 70px; height: 70px; object-fit: contain; filter: brightness(0.85) drop-shadow(0 0 12px rgba(212, 175, 55, 0.45)); }
     .logo-watermark:hover { opacity: 0.85; }
     .left-pane { width: 30%; flex-shrink: 0; display: flex; flex-direction: column; gap: 1rem; }
     .top-info-wrapper { flex-shrink: 0; }
     .app-container { flex-grow: 1; background: var(--bg-gradient); border-radius: 1rem; padding: 1.5rem; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3); border: 1px solid var(--border-color); display: flex; flex-direction: column; min-height: 0; position: relative; }
-    .app-header { text-align: center; margin-bottom: 1.5rem; }
-    .app-header h1 { color: #ffffff; font-size: 2.25rem; font-weight: 600; }
-    .app-header p { font-size: 1rem; color: var(--text-secondary); }
+    .top-banner-header { 
+        --banner-h: 84px;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 1000;
+        display: flex; 
+        align-items: center; 
+        justify-content: space-between; 
+        padding: 0.75rem 2rem;
+        background: #000000;
+        border-bottom: 1px solid #333;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
+        height: var(--banner-h);
+    }
+    .header-left {
+        display: flex;
+        align-items: center;
+        flex: 1;
+    }
+    .header-logo {
+        width: 70px;
+        height: 70px;
+        object-fit: contain;
+        filter: brightness(1.3) contrast(1.1) drop-shadow(0 0 20px rgba(212, 175, 55, 0.8));
+    }
+    .header-center {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex: 1;
+    }
+
+    /* Recycle Bin Drawer */
+    .recycle-bin-drawer {
+        position: fixed;
+        left: 0; right: 0;
+        bottom: 20vh;
+        margin-left: auto; margin-right: auto;
+        max-width: 56rem; /* ~max-w-3xl */
+        background: rgba(0,0,0,0.9);
+        -webkit-backdrop-filter: blur(6px);
+        backdrop-filter: blur(6px);
+        border: 1px solid #374151; /* gray-700 */
+        border-bottom: none;
+        border-top-left-radius: 0.75rem;
+        border-top-right-radius: 0.75rem;
+        box-shadow: 0 20px 45px rgba(0,0,0,0.6);
+        z-index: 40;
+    }
+    .recycle-bin-scroll {
+        max-height: 30vh;
+        overflow-y: auto;
+    }
+    .branding {
+        text-align: center;
+    }
+    .branding h1 {
+        font-size: 1.8rem;
+        font-weight: 700;
+        margin: 0;
+        line-height: 1.1;
+        transition: color 0.3s ease;
+    }
+    .branding h1.agent-online {
+        color: #39FF14;
+        text-shadow: 0 0 10px rgba(57, 255, 20, 0.5);
+    }
+    .branding h1.agent-offline {
+        color: #ffffff;
+    }
+    .branding .tagline { 
+        color: #cccccc; 
+        font-size: 0.9rem; 
+        font-weight: 400; 
+        display: block;
+        margin-top: 4px;
+        letter-spacing: 0.5px;
+    }
+    .header-right {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        flex: 1;
+        justify-content: flex-end;
+    }
+    .header-control-btn { 
+        background: transparent;
+        border: none;
+        cursor: pointer; 
+        padding: 0;
+        transition: transform 0.2s ease; 
+        opacity: 1;
+        border-radius: 0;
+        overflow: visible;
+        position: relative;
+        line-height: 0;
+    }
+    .header-control-btn:hover { 
+        transform: translateY(-1px); 
+    }
+    .header-control-btn img { 
+        width: 42px; 
+        height: auto; 
+        object-fit: contain; 
+        display: block;
+    }
+    .mac-million-btn:hover {
+        box-shadow: 0 4px 20px rgba(212, 175, 55, 0.4);
+    }
+    .leeway-multitool-wrapper {
+        padding-top: calc(var(--banner-h) + 32px); /* Extra space for fixed header */
+    }
+    .top-info-wrapper {
+        width: 100%;
+        height: auto;
+        min-height: 0;
+        display: block;
+        padding: 0;
+    }
+    .agent-avatar-simple {
+        width: 100%;
+        height: auto;
+        display: block;
+        padding: 0;
+        text-align: center;
+        margin: 0 auto;
+    }
+    .avatar-image {
+        width: 100%;
+        max-width: clamp(360px, 45vw, 520px);
+        max-height: min(65vh, 620px);
+        height: auto;
+        object-fit: contain;
+        border-radius: 12px;
+        filter: drop-shadow(0 8px 25px rgba(0, 0, 0, 0.6));
+        cursor: default;
+        transition: none;
+        margin: 0 auto;
+        display: inline-block;
+    }
+    .avatar-image:hover {
+        transform: scale(1.01);
+        filter: drop-shadow(0 10px 30px rgba(0, 0, 0, 0.7));
+    }
+    .mac-million-mic {
+        background: transparent !important;
+        border: none !important;
+        border-radius: 0 !important;
+        padding: 0 !important;
+        width: 52px !important;
+        height: 52px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        line-height: 0 !important;
+    }
+    .mac-mic-image {
+        width: 100% !important;
+        height: 100% !important;
+        object-fit: contain !important;
+        filter: none !important;
+        display: block !important;
+    }
+    .mac-million-mic:hover {
+        border-color: rgba(212, 175, 55, 0.6) !important;
+        background: rgba(212, 175, 55, 0.2) !important;
+        box-shadow: 0 0 20px rgba(212, 175, 55, 0.4) !important;
+    }
+    .mac-million-mic.listening {
+        background: rgba(212, 55, 55, 0.2) !important;
+        border-color: rgba(212, 55, 55, 0.5) !important;
+        animation: pulse-red 1.5s infinite !important;
+    }
+    .mac-million-mic.always-on {
+        box-shadow: 0 0 15px rgba(212, 175, 55, 0.6) !important;
+    }
+    .mac-mic-image {
+        width: 100% !important;
+        height: 100% !important;
+        object-fit: contain !important;
+        filter: brightness(1.1) drop-shadow(0 0 8px rgba(212, 175, 55, 0.5)) !important;
+    }
     .app-tabs-container { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1rem; }
     .app-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; }
     .app-tab-btn { padding: 0; border: none; border-radius: 0.75rem; cursor: pointer; transition: transform 0.2s ease, box-shadow 0.2s ease; position: relative; overflow: hidden; aspect-ratio: 1 / 1; display: flex; }
@@ -1244,13 +1437,13 @@ ACTIVE CHARACTER PROFILE (for consistency):
     .research-mode-btn.active::after { border-color: var(--accent-bg); box-shadow: 0 8px 16px rgba(212, 175, 55, 0.35); }
     .research-mode-btn:focus-visible { outline: 2px solid var(--accent-bg); outline-offset: 3px; }
     .bottom-controls-wrapper { display: flex; flex-direction: column; gap: 0.75rem; margin-top: auto; flex-shrink: 0; }
-    .central-input-bar { display: flex; gap: 0.5rem; background: #111; padding: 0.375rem; border-radius: 0.5rem; border: 1px solid var(--border-color); flex-grow: 1; align-items: center; min-height: 52px; }
-    .central-input-bar textarea { flex-grow: 1; background: #222; color: #f9fafb; border: 1px solid var(--border-color); border-radius: 0.5rem; padding: 0.5rem 0.75rem; font-size: 1rem; resize: none; min-height: 40px; max-height: 120px; line-height: 1.4; }
+    .central-input-bar { display: flex; gap: 0.75rem; background: #111; padding: 0.6rem 0.9rem; border-radius: 0.5rem; border: 1px solid var(--border-color); flex-grow: 1; align-items: center; min-height: 68px; }
+    .central-input-bar textarea { flex-grow: 1; background: #222; color: #f9fafb; border: 1px solid var(--border-color); border-radius: 0.5rem; padding: 0.6rem 0.9rem; font-size: 1rem; resize: none; min-height: 50px; max-height: 140px; line-height: 1.4; }
     .central-input-bar textarea::placeholder { color: #d4af37a0; }
     .central-input-bar textarea:focus { outline: none; box-shadow: 0 0 0 2px var(--border-color); }
     .input-buttons { display: flex; flex-direction: column; justify-content: space-between; gap: 0.5rem; }
     .input-buttons.horizontal { flex-direction: row; gap: 0.5rem; align-items: center; }
-    .input-buttons button, .note-picker-btn { background: var(--accent-bg); color: var(--accent-text); border: none; border-radius: 0.5rem; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s ease; }
+    .input-buttons button, .note-picker-btn { background: var(--accent-bg); color: var(--accent-text); border: none; border-radius: 0.5rem; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s ease; }
     .input-buttons button.mic-button { background-color: #444; color: white; }
     .input-buttons button.mic-button.always-on { box-shadow: 0 0 8px 2px rgba(212, 175, 55, 0.8); }
     .input-buttons button.mic-button.listening { background-color: #d43737; animation: pulse-red 1.5s infinite; box-shadow: none; }
@@ -1364,29 +1557,35 @@ ACTIVE CHARACTER PROFILE (for consistency):
             right: 0;
             z-index: 1000;
             background: linear-gradient(to top, #000 0%, #000 80%, rgba(0,0,0,0.95) 90%, rgba(0,0,0,0.8) 100%);
-            padding: 1rem;
+            padding: 0.75rem 1rem 0.75rem 1rem;
             padding-left: calc(1rem + env(safe-area-inset-left, 0rem));
             padding-right: calc(1rem + env(safe-area-inset-right, 0rem));
-            padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0rem));
+            padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0rem));
             border-top: 1px solid var(--border-color);
             box-shadow: 0 -4px 12px rgba(0,0,0,0.25);
+            height: auto;
+            max-height: 20vh; /* Do not exceed 20% of the screen height */
+            overflow: visible;
         }
 
         .central-input-bar {
             gap: 0.75rem;
-            padding: 0.75rem;
-            min-height: 60px; /* Ensure input area is visible */
+            padding: 0.75rem 1rem;
+            min-height: 68px; /* Larger input area */
             background: #1a1a1a;
             border: 2px solid var(--border-color);
             box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            max-height: 10vh;
         }
 
         .central-input-bar textarea {
-            min-height: 44px; /* Better for mobile */
+            min-height: 48px; /* Larger text area */
             font-size: 16px; /* Prevent zoom on iOS */
             background: #2a2a2a;
             border: 1px solid #444;
             color: #fff;
+            max-height: 7vh;
+            overflow-y: auto;
         }
 
         /* Fix microphone button sizing */
@@ -1552,52 +1751,72 @@ ACTIVE CHARACTER PROFILE (for consistency):
                 />
             )}
             {browserUrl && <InAppBrowser url={browserUrl} onClose={() => setBrowserUrl(null)} />}
+            {/* Top Level Header */}
+            <header className="top-banner-header">
+                <div className="header-left">
+                    <div className="logo-container">
+                        <img src={images.logo} alt="RWD Logo" className="header-logo" />
+                    </div>
+                </div>
+                <div className="header-center">
+                    <div className="branding">
+                        <h1 className={agentState === 'idle' ? 'agent-offline' : 'agent-online'}>Agent Lee</h1>
+                        <span className="tagline">Autonomous Personal Computer</span>
+                    </div>
+                </div>
+                <div className="header-right">
+                    <button 
+                        type="button" 
+                        className={`header-control-btn ${showCharacterStudio ? 'active' : ''}`}
+                        onClick={() => setShowCharacterStudio(!showCharacterStudio)}
+                        title={`Agent Lee Toggle - ${showCharacterStudio ? 'Position 2 (ON)' : 'Position 1 (OFF)'}`}
+                    >
+                        <img src={images.agentButton} alt="Agent Lee Toggle" />
+                    </button>
+                    <button 
+                        type="button" 
+                        className={`header-control-btn ${showCameraFeed ? 'active' : ''}`}
+                        onClick={() => setShowCameraFeed(!showCameraFeed)}
+                        title={`Camera Feed Toggle - ${showCameraFeed ? 'Position 2 (ON)' : 'Position 1 (OFF)'}`}
+                    >
+                        <img src={images.cameraFeed} alt="Camera Feed Toggle" />
+                    </button>
+                    <button
+                        type="button"
+                        aria-label="Open Marketing Dashboard"
+                        title="Open Marketing Dashboard"
+                        onClick={() => { window.location.hash = '/dashboard' }}
+                        className="header-control-btn"
+                    >
+                        <img src={images.icons.general} alt="Dashboard" />
+                    </button>
+                </div>
+            </header>
+
+            <SensorIntentBanner />
+
             <div className="leeway-multitool-wrapper">
                 <style>{styles}</style>
-                <div className="logo-watermark">
-                    <img src={images.logo} alt="Logo" />
-                </div>
                 
                 <div className="left-pane">
                     <div className="top-info-wrapper" id="agent-avatar-container">
-                        <AgentAvatar agentState={agentState} />
+                        <div className="agent-avatar-simple">
+                            <img src={images.agentLeeAvatar} alt="Agent Lee" className="avatar-image" />
+                        </div>
                     </div>
-                    <div id="agent-output-container">
-                        <AgentOutput 
-                            log={agentTransmissionLog} 
-                            onAction={handleLogAction}
-                            onDelete={handleDeleteLogEntry}
-                        />
-                         {interruptedResponse && (
-                            <div className="interruption-banner">
-                                <span>Agent Lee was interrupted.</span>
-                                <div>
-                                    <button onClick={handleResumeInterruption}>Resume</button>
-                                    <button onClick={handleDismissInterruption} className="dismiss">Dismiss</button>
-                                </div>
-                            </div>
-                         )}
-                    </div>
+                    {/* Agent output removed as requested */}
                     <div id="camera-feed-container">
                         <CameraFeed ref={cameraFeedRef} onCameraEnabled={handleCameraEnabled} />
                     </div>
                     <div className="bottom-controls-wrapper">
-                        <PersistentActions activeFeature={activeFeature as Feature} resultData={currentResultData} onAiAnalyze={handleGlobalAiAnalysis} />
+                                                <PersistentActions activeFeature={activeFeature as Feature} resultData={currentResultData} onAiAnalyze={handleGlobalAiAnalysis} />
+                                                                        <div className="flex items-center justify-end px-4 -mt-1">
+                                                                                    <button
+                                                            className="text-[11px] text-gray-300 hover:text-white underline underline-offset-2"
+                                                                                        onClick={() => setShowRecycleBin(v => !v)}
+                                                        >{showRecycleBin ? 'Hide' : 'Show'} Recycle Bin</button>
+                                                </div>
                         <div className="central-input-bar" id="central-input-bar">
-                            <div className="note-picker-container">
-                                <button onClick={() => setIsNotePickerOpen(p => !p)} className="note-picker-btn" title="Use content from a note">
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2 -2v-2" /><path d="M7 11l5 5l5 -5" /><path d="M12 4l0 12" /></svg>
-                                </button>
-                                {isNotePickerOpen && (
-                                    <div className="note-picker-dropdown">
-                                        {notes.length > 0 ? notes.map(note => (
-                                            <button key={note.id} onClick={() => applyNoteToPrompt(note)}>
-                                                {note.title}
-                                            </button>
-                                        )) : <p className="p-4 text-sm text-center">No notes available.</p>}
-                                    </div>
-                                )}
-                            </div>
                             <textarea
                                 id="central-prompt-input"
                                 value={promptInput}
@@ -1609,29 +1828,18 @@ ACTIVE CHARACTER PROFILE (for consistency):
                                 disabled={!isOnboardingComplete}
                             />
                             <div className="input-buttons horizontal unified-mic input-buttons-flex">
-                           <SavedBadge />
-                                 <button
-                                     id="mic-button"
-                     onClick={(e) => handleUnifiedMicButton(e)}
-                     onDoubleClick={() => { /* Explicit double-click finalize */ if (isListening) { const recognition = recognitionRef.current; if (recognition) { try { recognition.stop(); } catch(e) { console.warn('Double-click stop failed', e);} } } }}
-                     onContextMenu={(e) => { e.preventDefault(); openMicZoom(); }}
-                                     className={`mic-button unified ${isAlwaysListening ? 'always-on' : ''} ${isListening ? 'listening' : ''}`}
-                     aria-label={promptInput.trim() ? 'Send message' : (isListening ? 'Click again or double-click to send' : (isAlwaysListening ? 'Disable always-on microphone' : 'Enable push-to-talk'))}
-                     title={promptInput.trim() ? 'Send message' : (isListening ? 'Click again or double-click to send' : (isAlwaysListening ? 'Disable always-on microphone' : 'Enable push-to-talk'))}
-                                     disabled={!isOnboardingComplete}
-                                 >
-                                    {isListening ? (
-                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                            <rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor"/>
-                                        </svg>
-                                    ) : (
-                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                            <path d="M12 2C13.1046 2 14 2.89543 14 4V12C14 13.1046 13.1046 14 12 14C10.8954 14 10 13.1046 10 12V4C10 2.89543 10.8954 2 12 2Z" fill="currentColor"/>
-                                            <path d="M19 10V12C19 16.4183 15.4183 20 11 20H9C7.89543 20 7 20.8954 7 22C7 23.1046 7.89543 24 9 24H11C17.0751 24 22 19.0751 22 13V10C22 8.89543 21.1046 8 20 8C18.8954 8 18 8.89543 18 10H19Z" fill="currentColor"/>
-                                            <path d="M5 10V12C5 16.4183 8.58172 20 13 20H15C16.1046 20 17 20.8954 17 22C17 23.1046 16.1046 24 15 24H13C6.92487 24 2 19.0751 2 13V10C2 8.89543 2.89543 8 4 8C5.10457 8 6 8.89543 6 10H5Z" fill="currentColor"/>
-                                        </svg>
-                                    )}
-                                 </button>
+                                <button
+                                    id="mic-button"
+                                    onClick={(e) => handleUnifiedMicButton(e)}
+                                    onDoubleClick={() => { if (isListening) { const recognition = recognitionRef.current; if (recognition) { try { recognition.stop(); } catch(e) { console.warn('Double-click stop failed', e);} } } }}
+                                    onContextMenu={(e) => { e.preventDefault(); openMicZoom(); }}
+                                    className={`mic-button unified mac-million-mic ${isAlwaysListening ? 'always-on' : ''} ${isListening ? 'listening' : ''}`}
+                                    aria-label={promptInput.trim() ? 'Send message' : (isListening ? 'Click again or double-click to send' : (isAlwaysListening ? 'Disable always-on microphone' : 'Enable push-to-talk'))}
+                                    title={promptInput.trim() ? 'Send message' : (isListening ? 'Click again or double-click to send' : (isAlwaysListening ? 'Disable always-on microphone' : 'Enable push-to-talk'))} 
+                                    disabled={!isOnboardingComplete}
+                                >
+                                    <img src={images.macMillionMic} alt="Mac Million Mic" className="mac-mic-image" />
+                                </button>
                                  {promptInput.trim() && (
                                     <button
                                         onClick={() => handleSubmit(promptInput)}
@@ -1649,17 +1857,21 @@ ACTIVE CHARACTER PROFILE (for consistency):
                         </div>
                     </div>
                 </div>
+                                                {showRecycleBin && (
+                                                    <div className="recycle-bin-drawer">
+                                        <div className="flex items-center justify-between px-3 py-2 border-b border-gray-700">
+                                            <div className="text-sm text-gray-200">Recycle Bin</div>
+                                            <button className="text-xs text-gray-300 hover:text-white" onClick={() => setShowRecycleBin(false)}>Close</button>
+                                        </div>
+                                                        <div className="recycle-bin-scroll">
+                                            <Suspense fallback={<div className="p-3 text-xs text-gray-400">Loading…</div>}>
+                                                <RecycleBinPanel />
+                                            </Suspense>
+                                        </div>
+                                    </div>
+                                )}
 
                 <div className="app-container" id="app-container">
-                    <header className="app-header">
-                        <div className="header-left">
-                            <h1>Agent Lee Multi-Tool</h1>
-                            <p>Classified Intelligence Hub</p>
-                        </div>
-                        <div className="header-right">
-                            <ConversationCountdown remainingMs={remainingMs} percentElapsed={percentElapsed} isFlushing={isFlushing} onManualSave={manualSave} />
-                        </div>
-                    </header>
 
                     <div className="app-tabs-container" id="app-tabs-container">
                         <div className="app-tabs" role="tablist" aria-label="Main features">

@@ -26,14 +26,14 @@ interface PersistentActionsProps {
 }
 
 const icons = {
-    newNote: <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M13 20l7 -7" /><path d="M13 20v-6a1 1 0 0 1 1 -1h6v-7a2 2 0 0 0 -2 -2h-12a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h7" /></svg>,
-    save: <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M6 4h10l4 4v10a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2" /><path d="M12 14m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0" /><path d="M14 4l0 4l-6 0l0 -4" /></svg>,
-    sync: <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M20 11a8.1 8.1 0 0 0 -15.5 -2m-.5 -4v4h4" /><path d="M4 13a8.1 8.1 0 0 0 15.5 2m.5 4v-4h-4" /></svg>,
-    ai: <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10 16.5l-3 -3l3 -3" /><path d="M14 16.5l3 -3l-3 -3" /><path d="M9 12h6" /><path d="M6 8.25c.5 1 1.5 1.5 3 1.5c1.5 0 2.5 -.5 3 -1.5" /><path d="M12 3a9 9 0 0 0 0 18a9 9 0 0 0 6.362 -15.365" /></svg>,
-    eye: <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" /><path d="M21 12c-2.2 4.6 -6.1 7 -9 7s-6.8 -2.4 -9 -7c2.2 -4.6 6.1 -7 9 -7s6.8 2.4 9 7" /></svg>,
-    export: <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M14 3v4a1 1 0 0 0 1 1h4" /><path d="M11.5 21h-4.5a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v5m-5 6h7m-3 -3l3 3l-3 3" /></svg>,
-    print: <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M17 17h2a2 2 0 0 0 2 -2v-4a2 2 0 0 0 -2 -2h-14a2 2 0 0 0 -2 2v4a2 2 0 0 0 2 2h2" /><path d="M17 9v-4a2 2 0 0 0 -2 -2h-6a2 2 0 0 0 -2 2v4" /><path d="M7 13m0 2a2 2 0 0 1 2 -2h6a2 2 0 0 1 2 2v4a2 2 0 0 1 -2 2h-6a2 2 0 0 1 -2 -2z" /></svg>,
-    share: <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M6 12m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0" /><path d="M18 6m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0" /><path d="M18 18m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0" /><path d="M8.7 10.7l6.6 -3.4" /><path d="M8.7 13.3l6.6 3.4" /></svg>,
+    newNote: <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M13 20l7 -7" /><path d="M13 20v-6a1 1 0 0 1 1 -1h6v-7a2 2 0 0 0 -2 -2h-12a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h7" /></svg>,
+    save: <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M6 4h10l4 4v10a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2" /><path d="M12 14m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0" /><path d="M14 4l0 4l-6 0l0 -4" /></svg>,
+    sync: <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M20 11a8.1 8.1 0 0 0 -15.5 -2m-.5 -4v4h4" /><path d="M4 13a8.1 8.1 0 0 0 15.5 2m.5 4v-4h-4" /></svg>,
+    ai: <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10 16.5l-3 -3l3 -3" /><path d="M14 16.5l3 -3l-3 -3" /><path d="M9 12h6" /><path d="M6 8.25c.5 1 1.5 1.5 3 1.5c1.5 0 2.5 -.5 3 -1.5" /><path d="M12 3a9 9 0 0 0 0 18a9 9 0 0 0 6.362 -15.365" /></svg>,
+    eye: <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" /><path d="M21 12c-2.2 4.6 -6.1 7 -9 7s-6.8 -2.4 -9 -7c2.2 -4.6 6.1 -7 9 -7s6.8 2.4 9 7" /></svg>,
+    export: <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M14 3v4a1 1 0 0 0 1 1h4" /><path d="M11.5 21h-4.5a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v5m-5 6h7m-3 -3l3 3l-3 3" /></svg>,
+    print: <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M17 17h2a2 2 0 0 0 2 -2v-4a2 2 0 0 0 -2 -2h-14a2 2 0 0 0 -2 2v4a2 2 0 0 0 2 2h2" /><path d="M17 9v-4a2 2 0 0 0 -2 -2h-6a2 2 0 0 0 -2 2v4" /><path d="M7 13m0 2a2 2 0 0 1 2 -2h6a2 2 0 0 1 2 2v4a2 2 0 0 1 -2 2h-6a2 2 0 0 1 -2 -2z" /></svg>,
+    share: <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M6 12m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0" /><path d="M18 6m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0" /><path d="M18 18m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0" /><path d="M8.7 10.7l6.6 -3.4" /><path d="M8.7 13.3l6.6 3.4" /></svg>,
 }
 
 const PersistentActions: React.FC<PersistentActionsProps> = ({ activeFeature, resultData, onAiAnalyze }) => {
@@ -42,7 +42,7 @@ const PersistentActions: React.FC<PersistentActionsProps> = ({ activeFeature, re
 
     const activeNote = notes.find(n => n.id === activeNoteId);
 
-    const handleSave = () => {
+    const handleSave = async () => {
         let noteContent: NoteContent | null = null;
         let title = `Note from ${activeFeature}`;
 
@@ -70,10 +70,10 @@ const PersistentActions: React.FC<PersistentActionsProps> = ({ activeFeature, re
                  break;
         }
 
-        if (noteContent) {
-            addNote(title, noteContent);
-            Autosave.snapshot(buildSnapshot('note', 'last-created', activeFeature, { title, noteContent }));
-        }
+        if (!noteContent) return;
+
+        addNote(title, noteContent);
+        Autosave.snapshot(buildSnapshot('note', 'last-created', activeFeature, { title, noteContent }));
     };
 
     const handleSync = () => {
@@ -147,19 +147,19 @@ const PersistentActions: React.FC<PersistentActionsProps> = ({ activeFeature, re
         .persistent-actions-wrapper { position: relative; }
         .persistent-actions-container {
             display: flex;
-            gap: 0.5rem;
+            gap: 0.25rem;
             align-items: stretch;
             overflow-x: auto;
-            padding: 0.25rem 2.25rem 0.5rem 2.25rem; /* space for arrows */
+            padding: 0.05rem 1.5rem 0.1rem 1.5rem; /* very tight vertical padding, space for arrows */
             -ms-overflow-style: none;
             scrollbar-width: none;
             scroll-behavior: smooth;
         }
         .persistent-actions-container::-webkit-scrollbar { display: none; }
-        .pa-scroll-btn { position: absolute; top: 0; bottom: 0; width: 2rem; display: flex; align-items: center; justify-content: center; background: linear-gradient(to right, rgba(0,0,0,0.65), rgba(0,0,0,0)); border: none; cursor: pointer; z-index: 5; padding: 0; }
+    .pa-scroll-btn { position: absolute; top: 0; bottom: 0; width: 1.25rem; display: flex; align-items: center; justify-content: center; background: linear-gradient(to right, rgba(0,0,0,0.65), rgba(0,0,0,0)); border: none; cursor: pointer; z-index: 5; padding: 0; }
         .pa-scroll-btn.right { right: 0; background: linear-gradient(to left, rgba(0,0,0,0.65), rgba(0,0,0,0)); }
         .pa-scroll-btn.left { left: 0; }
-        .pa-scroll-btn svg { width: 20px; height: 20px; stroke: #39FF14; }
+    .pa-scroll-btn svg { width: 16px; height: 16px; stroke: #39FF14; }
         .pa-scroll-btn:hover svg { filter: drop-shadow(0 0 4px #39FF14); }
         .pa-scroll-btn[disabled] { opacity: 0.25; cursor: default; }
         .persistent-actions-container:active { cursor: grabbing; }
@@ -220,11 +220,11 @@ const PersistentActions: React.FC<PersistentActionsProps> = ({ activeFeature, re
                                     className="persistent-actions-container"
                                     onWheel={(e) => { if (e.shiftKey) { e.preventDefault(); (e.currentTarget as HTMLDivElement).scrollBy({ left: e.deltaY, behavior: 'smooth' }); } }}
                                 >
-                                        <ActionButton onClick={() => addNote('New Note', { type: 'text', text: '' })} icon={icons.newNote} label="New Note" />
+                                        <ActionButton onClick={() => { addNote('New Note', { type: 'text', text: '' }); }} icon={icons.newNote} label="New Note" />
                                         <ActionButton onClick={handleSave} icon={icons.save} label="Save Result" disabled={!hasSaveableContent || activeFeature === 'notepad'} />
-                                        <div className="w-px h-10 bg-gray-600 mx-1 flex-shrink-0"></div>
+                                        <div className="w-px h-5 bg-gray-600 mx-1 flex-shrink-0"></div>
                                         <ActionButton onClick={onAiAnalyze} icon={icons.ai} label="AI Analysis" disabled={isAnalysisDisabled} />
-                                        <div className="w-px h-10 bg-gray-600 mx-1 flex-shrink-0"></div>
+                                        <div className="w-px h-5 bg-gray-600 mx-1 flex-shrink-0"></div>
                                         <ActionButton onClick={handleSync} icon={icons.sync} label={syncStatus} disabled={syncStatus !== 'Sync'} />
                                         <ActionButton onClick={handleExport} icon={icons.export} label="Export Note" disabled={!activeNote} />
                                         <ActionButton onClick={handlePrint} icon={icons.print} label="Print Note" disabled={!activeNote || activeNote.content.type !== 'text'} />
@@ -250,10 +250,10 @@ const ActionButton: React.FC<{onClick: () => void, icon: React.ReactElement, lab
             onClick={onClick}
             disabled={disabled}
             title={label}
-                        className="action-button-green flex flex-col items-center justify-center w-20 h-16 text-white rounded-md transition-all disabled:cursor-not-allowed p-1 text-center flex-shrink-0"
+                        className="action-button-green flex flex-col items-center justify-center w-12 h-9 text-white rounded-md transition-all disabled:cursor-not-allowed p-0.5 text-center flex-shrink-0"
         >
             {icon}
-            <span className="text-xs mt-1 leading-tight">{label}</span>
+            <span className="text-[9px] mt-0.5 leading-[1.05]">{label}</span>
         </button>
     )
 }

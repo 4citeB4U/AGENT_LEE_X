@@ -5,13 +5,11 @@ COLOR_ONION_HEX: NEON=#39FF14 FLUO=#0DFF94 PASTEL=#C7FFD8
 ICON_FAMILY: lucide
 ICON_GLYPH: book-open-check
 ICON_SIG: CD534113
-5WH: WHAT=Enhanced README for Agent Lee X (clarity + cohesion, LEEWAY-compliant); WHY=Improve onboarding for devs, investors, and integrators; WHO=LeeWay Core; WHERE=README.md; WHEN=2025-10-18; HOW=GitHub-optimized Markdown
+5WH: WHAT=Enhanced README for Agent Lee X (clarity + cohesion, LEEWAY-compliant); WHY=Improve onboarding for devs, investors, and integrators; WHO=LeeWay Core; WHERE=README.agentleeX.enhanced.md; WHEN=2025-10-18; HOW=GitHub-optimized Markdown
 SPDX-License-Identifier: MIT
 */
 
 # Agent Lee X — Autonomous Personal Computer (APC)
-
-A LEEWAY-compliant, production-grade AI operating system that lives inside any device. This enhanced README preserves all details from the base README while restructuring for clarity, navigation, and onboarding speed.
 
 ---
 
@@ -197,30 +195,6 @@ Multi-platform:
 ## Deployment
 
 GitHub Pages (CI): deploy on push to main.
-
----
-
-## Profitability by Default (LEEWAY v10)
-
-Targets for launches and scale decisions:
-
-- ROAS ≥ 4x
-- LTV:CAC ≥ 3x
-- CAC ≤ cap (default 120)
-
-CI includes an optional profit gate that blocks releases below thresholds. Provide a marketing snapshot at `data/snapshots/last.json`:
-
-```json
-{ "roas": 4.2, "ltvToCac": 3.4, "cac": 55 }
-```
-
-Run locally:
-
-```bash
-npm run profit:gate
-```
-
-This repository also ships a lightweight dashboard at `src/routes/dashboard/MarketingDashboard.tsx` to visualize KPIs from CSV and a Capability Matrix at `src/routes/help/Capabilities.tsx` for in-app help.
 
 Cloudflare Worker proxy:
 ```bash

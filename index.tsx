@@ -39,7 +39,7 @@ class ErrorBoundary extends React.Component<{children: React.ReactNode}, {hasErr
     }
     
     document.body.innerHTML = `
-      <div style="color: white; background: #1a1a1a; padding: 20px; font-family: monospace;">
+      <div class="text-white bg-[#1a1a1a] p-5 font-mono">
         <h1>Agent Lee X - Error</h1>
         <p>Error: ${error.message}</p>
         <pre>${error.stack}</pre>
@@ -53,10 +53,10 @@ class ErrorBoundary extends React.Component<{children: React.ReactNode}, {hasErr
   render() {
     if (this.state.hasError) {
       return (
-        <div style={{color: 'white', background: '#1a1a1a', padding: '20px'}}>
+        <div className="text-white bg-[#1a1a1a] p-5">
           <h1>Something went wrong in Agent Lee X</h1>
           <p>Error: {this.state.error?.message}</p>
-          <button onClick={() => window.location.reload()}>Reload</button>
+          <button aria-label="Reload app" onClick={() => window.location.reload()}>Reload</button>
         </div>
       );
     }
@@ -115,15 +115,55 @@ if ('serviceWorker' in navigator) {
 
 const root = ReactDOM.createRoot(rootElement);
 
-// Add error handling and debug info
-console.log('Rendering Agent Lee X...');
+async function renderByHash() {
+  const hash = window.location.hash || ''
+  // Simple hash routes to avoid adding a router dependency
+  if (hash.startsWith('#/dashboard')) {
+    // Support nested route for KPI badges under /dashboard/kpis
+    if (hash.startsWith('#/dashboard/kpis')) {
+      const Mod = (await import('./src/routes/dashboard/KPIBadgePanel')).default
+      root.render(
+        <React.StrictMode>
+          <ErrorBoundary>
+            <Mod />
+          </ErrorBoundary>
+        </React.StrictMode>
+      )
+      return
+    }
+    const Mod = (await import('./src/routes/dashboard/MarketingDashboard')).default
+    root.render(
+      <React.StrictMode>
+        <ErrorBoundary>
+          <Mod />
+        </ErrorBoundary>
+      </React.StrictMode>
+    )
+    return
+  }
+  if (hash.startsWith('#/help/capabilities')) {
+    const Mod = (await import('./src/routes/help/Capabilities')).default
+    root.render(
+      <React.StrictMode>
+        <ErrorBoundary>
+          <Mod />
+        </ErrorBoundary>
+      </React.StrictMode>
+    )
+    return
+  }
+  // Default: full app
+  root.render(
+    <React.StrictMode>
+      <ErrorBoundary>
+        <App />
+      </ErrorBoundary>
+    </React.StrictMode>
+  )
+}
 
-root.render(
-  <React.StrictMode>
-    <ErrorBoundary>
-      <App />
-    </ErrorBoundary>
-  </React.StrictMode>
-);
+// Initial render and handle navigation
+renderByHash()
+window.addEventListener('hashchange', renderByHash)
 
 console.log('Agent Lee X render complete');

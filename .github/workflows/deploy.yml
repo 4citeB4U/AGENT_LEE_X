@@ -30,9 +30,15 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build
+      - name: Profitability Gate
+        run: npm run profit:gate
         env:
-          VITE_GEMINI_API_KEY: ${{ secrets.VITE_GEMINI_API_KEY }}
+          MIN_ROAS: 4
+          MIN_LTV_CAC: 3
+          MAX_CAC: 120
+          MKTG_SNAPSHOT: ./data/snapshots/last.json
+
+      - name: Build
         run: |
           npm run build
           cp dist/index.html dist/404.html

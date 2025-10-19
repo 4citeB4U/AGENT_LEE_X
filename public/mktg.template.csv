@@ -1,0 +1,3 @@
+Date,Channel,Source,Medium,Campaign,AdGroup,Ad,Impressions,Clicks,Sessions,Cost,Conversions,Revenue
+2025-10-10,Ads,google,cpc,brand,core,ad-1,10000,500,450,250.00,30,1500.00
+2025-10-11,Ads,facebook,paid_social,retargeting,rg-1,ad-2,8000,320,300,180.00,18,900.00

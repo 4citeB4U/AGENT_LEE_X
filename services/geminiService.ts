@@ -10,7 +10,7 @@ SPDX-License-Identifier: MIT
 
 // FIX: Updated import path from "@google/ai" to "@google/genai"
 import { Chat, GoogleGenAI } from "@google/genai";
-import { buildSystemPrompt } from '../src/prompts'; // Import the new prompt builder
+import { buildSystemPromptV11 } from '../src/agentlee.core'; // Use v11-aware prompt builder
 import type { Note } from '../types';
 import { geminiApiLimiter } from '../utils/rateLimiter'; // FIX: Import the API rate limiter
 
@@ -482,7 +482,7 @@ export const findRelevantMemory = async (prompt: string, memories: Note[]): Prom
 // createChat is used by the CommunicationControl component
 export const createChat = (userName?: string): Chat => {
     // Build the comprehensive system prompt for Agent Lee
-    const systemInstruction = buildSystemPrompt(userName);
+    const systemInstruction = buildSystemPromptV11(userName || 'User');
 
     return getAI().chats.create({
         model: 'gemini-2.5-flash',

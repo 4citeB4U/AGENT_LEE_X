@@ -154,6 +154,24 @@ All structured data validated. FAQPage or Speakable required. Org schema present
 - Paywalls optional.  
 - AI cost control with budget caps and fallback providers.
 
+### 12.1 Profitability Standard (Profit-First)
+
+All releases must meet profitability thresholds unless explicitly waived by owners:
+
+- ROAS ≥ 4x (configurable)
+- LTV:CAC ≥ 3x (configurable)
+- CAC ≤ cap (default 120)
+
+Enforcement: a CI gate script `scripts/leeway_profit_gate.mjs` reads `data/snapshots/last.json` and exits non-zero if thresholds fail. Configure with env vars `MIN_ROAS`, `MIN_LTV_CAC`, `MAX_CAC`, and `MKTG_SNAPSHOT`.
+
+Example snapshot JSON:
+
+```json
+{ "roas": 4.2, "ltvToCac": 3.4, "cac": 55 }
+```
+
+Add an optional marketing dashboard (`src/routes/dashboard/MarketingDashboard.tsx`) to visualize CSV-based KPIs and align product decisions to the gate.
+
 ---
 
 ## 13. Cost & Free-Tier Discipline

@@ -1,11 +1,11 @@
 <!--
-LEEWAY HEADER — DO NOT REMOVE
-REGION: UI.UNKNOWN
+LEEWAY HEADER
+TAG: FRONTEND.HTML.ROOT
 COLOR_ONION_HEX: NEON=#39FF14 FLUO=#0DFF94 PASTEL=#C7FFD8
-ICON_ASCII: family=lucide glyph=layout-dashboard ICON_SIG=CD534113
-5WH: WHAT=Module: index.html; WHY=standardize; WHO=RapidWebDevelop; WHERE=F:\4leeway-multitool\index.html; WHEN=2025-10-05; HOW=React/Tailwind
-SIG: 00000000
-AGENTS: AZR, PHI3, GEMINI, QWEN, LLAMA, ECHO
+ICON_FAMILY: lucide
+ICON_GLYPH: layout-dashboard
+ICON_SIG: CD534113
+5WH: WHAT=Root HTML entry for Vite app; WHY=Bootstrap SPA shell; WHO=Leeway Core; WHERE=index.html; WHEN=2025-10-19; HOW=HTML
 SPDX-License-Identifier: MIT
 -->
 
@@ -41,6 +41,39 @@ SPDX-License-Identifier: MIT
     <!-- <script type="importmap"> ... </script> -->
 
     <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Profitability FAQ JSON-LD for SEO/Voice -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Does Agent Lee include marketing dashboards and profitability gates?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Yes. Agent Lee ships with KPIs (ROAS, CAC, LTV:CAC), CSV/Sheets templates, attribution models, and CI gates that block releases below configured profitability thresholds." }
+        }
+      ]
+    }
+    </script>
+    <!-- LEEWAY v11 System Header (Multimodal & Handoff) -->
+    <script type="application/json" id="leeway_v11_standard">
+    {
+      "standard": "LEEWAY v11 — Multimodal Discovery & Cross-Device Handoff",
+      "type": "developer_system_prompt",
+      "version": "11.0.0",
+      "id": "leeway.v11.multimodal.handoff.standard"
+    }
+    </script>
+    <script>
+      (function(){
+        try {
+          var el = document.getElementById('leeway_v11_standard');
+          if (el && el.textContent) {
+            window.AGENT_LEE_STANDARD = JSON.parse(el.textContent);
+          }
+        } catch (e) { console.warn('Failed to parse LEEWAY v11 standard JSON', e); }
+      })();
+    </script>
   </head>
   <body class="bg-gray-900">
     <div id="root"></div>

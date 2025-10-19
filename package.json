@@ -13,7 +13,14 @@
     "migrate:headers:dry": "node scripts/leeway_header_migrator.mjs --dry-run",
     "migrate:headers": "node scripts/leeway_header_migrator.mjs",
     "header:audit": "ts-node scripts/header-migrator.ts --audit",
-    "header:apply": "ts-node scripts/header-migrator.ts --apply"
+    "header:apply": "ts-node scripts/header-migrator.ts --apply",
+    "leeway:audit": "node scripts/leeway_header_audit.mjs",
+    "leeway:headers": "node scripts/leeway_header_migrator.mjs",
+    "mobile:android": "echo \"Open android/ in Android Studio and build\" && exit 0",
+    "mobile:ios": "echo \"Open ios/ in Xcode and build\" && exit 0",
+    "worker:deploy": "cd cf-proxy && wrangler publish",
+    "profit:gate": "node ./scripts/leeway_profit_gate.mjs",
+    "snapshot:example": "node -e \"require('fs').mkdirSync('./data/snapshots',{recursive:true}); require('fs').writeFileSync('./data/snapshots/last.json', JSON.stringify({roas:4.2, ltvToCac:3.4, cac:55}))\""
   },
   "dependencies": {
     "@google/genai": "^1.19.0",

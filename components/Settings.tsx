@@ -9,11 +9,11 @@ AGENTS: AZR, PHI3, GEMINI, QWEN, LLAMA, ECHO
 SPDX-License-Identifier: MIT
 */
 
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import { NotepadContext } from '../contexts/NotepadContext';
-import type { Note, TransmissionLogEntry, Contact } from '../types';
-import { mdToHtml } from '../utils/markdown';
 import * as ttsService from '../services/ttsService';
+import type { Contact, Note, TransmissionLogEntry } from '../types';
+import { mdToHtml } from '../utils/markdown';
 
 interface SettingsProps {
     transmissionLog: TransmissionLogEntry[];
@@ -338,6 +338,14 @@ const Settings: React.FC<SettingsProps> = ({ transmissionLog, userName }) => {
     return (
         <div className="p-4 sm:p-6 text-gray-200 h-full overflow-y-auto">
             <h2 className="text-2xl font-bold mb-6 text-white border-b border-gray-700 pb-2">Settings</h2>
+                        <div className="mb-6 p-3 rounded-lg border border-emerald-700/40 bg-emerald-900/20">
+                            <div className="font-semibold mb-2">Growth & Profitability</div>
+                            <p className="text-sm text-gray-400 mb-3">Open the lightweight marketing dashboard and the in-app capability matrix.</p>
+                            <div className="flex gap-3 flex-wrap">
+                                <button onClick={() => window.open('#/dashboard', '_self')} className="px-3 py-2 rounded-md bg-emerald-700 hover:bg-emerald-600 text-white text-sm">Open Dashboard</button>
+                                <button onClick={() => window.open('#/help/capabilities', '_self')} className="px-3 py-2 rounded-md bg-indigo-700 hover:bg-indigo-600 text-white text-sm">Open Capabilities</button>
+                            </div>
+                        </div>
             
             <div className="mb-8">
                 <h3 className="text-xl font-semibold mb-3 text-gray-100">Appearance</h3>
@@ -346,8 +354,11 @@ const Settings: React.FC<SettingsProps> = ({ transmissionLog, userName }) => {
                     {themes.map(t => (
                         <div key={t.id} onClick={() => setTheme(t.id)} className="cursor-pointer">
                             <div
-                                className="w-24 h-16 rounded-lg border-2 transition-all"
-                                style={{ background: t.bg, borderColor: theme === t.id ? '#d4af37' : 'transparent', transform: theme === t.id ? 'scale(1.1)' : 'scale(1)' }}
+                                className={`w-24 h-16 rounded-lg border-2 transition-transform ${
+                                    t.id === 'onyx-gold' ? 'bg-grad-onyx-gold' :
+                                    t.id === 'midnight' ? 'bg-grad-midnight' :
+                                    t.id === 'slate' ? 'bg-grad-slate' : 'bg-grad-nebula'
+                                } ${theme === t.id ? 'border-yellow-400 scale-110' : 'border-transparent scale-100'}`}
                             />
                             <p className={`text-center mt-2 font-medium ${theme === t.id ? 'text-white' : 'text-gray-400'}`}>{t.name}</p>
                         </div>
@@ -362,7 +373,7 @@ const Settings: React.FC<SettingsProps> = ({ transmissionLog, userName }) => {
                     <form onSubmit={handleAddContact} className="flex gap-2 mb-4">
                         <input type="text" placeholder="Name" value={newContactName} onChange={e => setNewContactName(e.target.value)} required className="flex-grow p-2 border border-gray-600 rounded-md bg-gray-700 text-white" />
                         <input type="tel" placeholder="Phone Number" value={newContactPhone} onChange={e => setNewContactPhone(e.target.value)} required className="flex-grow p-2 border border-gray-600 rounded-md bg-gray-700 text-white" />
-                        <button type="submit" className="p-2 px-4 bg-indigo-600 text-white rounded-md font-semibold hover:bg-indigo-700"><i className="fas fa-plus"></i></button>
+                        <button aria-label="Add contact" type="submit" className="p-2 px-4 bg-indigo-600 text-white rounded-md font-semibold hover:bg-indigo-700"><i className="fas fa-plus"></i></button>
                     </form>
                     <div className="space-y-2 max-h-48 overflow-y-auto">
                         {contacts.length > 0 ? contacts.map(contact => (
@@ -371,7 +382,7 @@ const Settings: React.FC<SettingsProps> = ({ transmissionLog, userName }) => {
                                     <p className="font-semibold text-gray-100">{contact.name}</p>
                                     <p className="text-sm text-gray-400">{contact.phone}</p>
                                 </div>
-                                <button onClick={() => handleDeleteContact(contact.id)} className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-900/50 rounded-full">
+                                <button aria-label={`Delete contact ${contact.name}`} onClick={() => handleDeleteContact(contact.id)} className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-900/50 rounded-full">
                                     <i className="fas fa-trash-alt"></i>
                                 </button>
                             </div>
@@ -393,10 +404,10 @@ const Settings: React.FC<SettingsProps> = ({ transmissionLog, userName }) => {
                                 if (!voice) return null; // Should not happen if data is clean
                                 return (
                                     <div key={uri} className={`relative group pl-3 pr-2 py-1 border rounded-full flex items-center gap-2 transition-colors ${pendingVoiceURI === uri ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-gray-700 border-gray-600'}`}>
-                                        <button onClick={() => handleSetFavoriteAsDefault(uri)} className="flex-grow text-left">
+                                        <button aria-label={`Set ${voice?.name || 'voice'} as default`} onClick={() => handleSetFavoriteAsDefault(uri)} className="flex-grow text-left">
                                             <span className="font-medium text-sm">{voice.name}</span>
                                         </button>
-                                        <button onClick={() => handleRemoveFromFavorites(uri)} className={`w-5 h-5 flex items-center justify-center rounded-full text-xs ${pendingVoiceURI === uri ? 'text-indigo-200 hover:bg-indigo-700 hover:text-white' : 'text-gray-400 hover:bg-red-500 hover:text-white'}`}>
+                                        <button aria-label={`Remove ${voice?.name || 'voice'} from favorites`} onClick={() => handleRemoveFromFavorites(uri)} className={`w-5 h-5 flex items-center justify-center rounded-full text-xs ${pendingVoiceURI === uri ? 'text-indigo-200 hover:bg-indigo-700 hover:text-white' : 'text-gray-400 hover:bg-red-500 hover:text-white'}`}>
                                            <i className="fas fa-times"></i>
                                         </button>
                                     </div>
@@ -435,7 +446,9 @@ const Settings: React.FC<SettingsProps> = ({ transmissionLog, userName }) => {
                      <p className="text-gray-400 bg-gray-800 p-3 rounded-md">Loading available voices...</p>
                 ) : availableVoices.length > 0 ? (
                     <div className="flex items-center gap-2 flex-wrap">
+                        <label htmlFor="voice-select" className="sr-only">Select a voice</label>
                         <select
+                            id="voice-select"
                             value={pendingVoiceURI}
                             onChange={handlePendingVoiceChange}
                             className="flex-grow p-3 bg-gray-700 border border-gray-600 text-white rounded-lg cursor-pointer min-w-[200px]"
@@ -458,7 +471,7 @@ const Settings: React.FC<SettingsProps> = ({ transmissionLog, userName }) => {
                         >
                             <i className="far fa-star mr-2"></i> Add
                         </button>
-                        <button onClick={handleTestVoice} className="p-3 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 whitespace-nowrap font-semibold">
+                        <button aria-label="Test selected voice" onClick={handleTestVoice} className="p-3 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 whitespace-nowrap font-semibold">
                            Test
                         </button>
                         <button 
@@ -492,7 +505,7 @@ const Settings: React.FC<SettingsProps> = ({ transmissionLog, userName }) => {
                 <h3 className="text-xl font-semibold mb-3 text-gray-100">Data Management</h3>
                  <p className="mb-4 text-gray-400">Export, import, or delete your saved notes.</p>
                 <div className="space-y-4 max-w-md">
-                    <button onClick={handleExport} className="w-full text-left p-4 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors flex items-center gap-4 border border-gray-700">
+                        <button aria-label="Export all notes" onClick={handleExport} className="w-full text-left p-4 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors flex items-center gap-4 border border-gray-700">
                         <i className="fas fa-file-export text-xl text-gray-300"></i>
                         <div>
                             <span className="font-semibold">Export All Notes</span>
@@ -509,7 +522,7 @@ const Settings: React.FC<SettingsProps> = ({ transmissionLog, userName }) => {
                         <input type="file" accept=".json" onChange={handleImport} className="hidden" />
                     </label>
 
-                    <button onClick={deleteAllNotes} className="w-full text-left p-4 bg-red-900/50 hover:bg-red-900/70 rounded-lg transition-colors flex items-center gap-4 border border-red-700">
+                    <button aria-label="Delete all notes" onClick={deleteAllNotes} className="w-full text-left p-4 bg-red-900/50 hover:bg-red-900/70 rounded-lg transition-colors flex items-center gap-4 border border-red-700">
                         <i className="fas fa-trash-alt text-xl text-red-400"></i>
                          <div>
                             <span className="font-semibold text-red-300">Delete All Notes</span>
@@ -522,7 +535,7 @@ const Settings: React.FC<SettingsProps> = ({ transmissionLog, userName }) => {
              <div className="mb-8">
                 <h3 className="text-xl font-semibold mb-3 text-gray-100">Transmission Logs</h3>
                 <p className="mb-4 text-gray-400">Review your persisted conversation history with Agent Lee.</p>
-                 <button onClick={() => setIsLogModalOpen(true)} className="w-full max-w-md text-left p-4 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors flex items-center gap-4 border border-gray-700">
+                        <button aria-label="Open transmission log" onClick={() => setIsLogModalOpen(true)} className="w-full max-w-md text-left p-4 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors flex items-center gap-4 border border-gray-700">
                     <i className="fas fa-history text-xl text-gray-300"></i>
                     <div>
                         <span className="font-semibold">View Session Log</span>
@@ -556,7 +569,7 @@ const Settings: React.FC<SettingsProps> = ({ transmissionLog, userName }) => {
                         <div className="max-h-[60vh] overflow-y-auto pr-2 text-gray-300">
                            {renderNoteContentForModal(viewingNote)}
                         </div>
-                        <button onClick={() => setViewingNote(null)} className="mt-6 bg-gray-700 text-white px-4 py-2 rounded-md float-right hover:bg-gray-600 transition-colors">Close</button>
+                        <button aria-label="Close note" onClick={() => setViewingNote(null)} className="mt-6 bg-gray-700 text-white px-4 py-2 rounded-md float-right hover:bg-gray-600 transition-colors">Close</button>
                     </div>
                 </div>
             )}
@@ -571,7 +584,7 @@ const Settings: React.FC<SettingsProps> = ({ transmissionLog, userName }) => {
                                 return (
                                     <div key={entry.id} className="whitespace-pre-wrap mb-2">
                                         <div className="text-xs opacity-60">{new Date(entry.timestamp).toLocaleString()}</div>
-                                        <div style={{ color }}>
+                                        <div className={color === '#63b3ed' ? 'text-sky-400' : color === '#28a745' ? 'text-green-500' : color === '#d4af37' ? 'text-yellow-400' : 'text-white'}>
                                             <span className="font-bold">{prefix}</span>
                                             <span>{entry.text}</span>
                                         </div>
@@ -579,7 +592,7 @@ const Settings: React.FC<SettingsProps> = ({ transmissionLog, userName }) => {
                                 );
                             }) : <p className="text-gray-400">No transmissions logged in this session yet.</p>}
                         </div>
-                        <button onClick={() => setIsLogModalOpen(false)} className="mt-6 bg-gray-700 text-white px-4 py-2 rounded-md float-right hover:bg-gray-600 transition-colors">Close</button>
+                        <button aria-label="Close transmission log" onClick={() => setIsLogModalOpen(false)} className="mt-6 bg-gray-700 text-white px-4 py-2 rounded-md float-right hover:bg-gray-600 transition-colors">Close</button>
                     </div>
                 </div>
             )}

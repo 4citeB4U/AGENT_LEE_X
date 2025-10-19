@@ -7,7 +7,12 @@ android {
   }
 }
 
-apply from: "../capacitor-cordova-android-plugins/cordova.variables.gradle"
+// Only apply Cordova aggregator variables if the plugin folder exists (created by `npx cap sync` when Cordova plugins are installed)
+if (file("../capacitor-cordova-android-plugins/cordova.variables.gradle").exists()) {
+  apply from: "../capacitor-cordova-android-plugins/cordova.variables.gradle"
+} else {
+  logger.lifecycle("[Gradle] Skipping cordova.variables.gradle (no Cordova aggregator present). Run `npx cap sync android` after adding plugins.")
+}
 dependencies {
     implementation project(':capacitor-browser')
 
