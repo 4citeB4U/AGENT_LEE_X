@@ -21,7 +21,8 @@ const PRECACHE = `agent-lee-core-${VERSION}`;
 const RUNTIME = `agent-lee-runtime-${VERSION}`;
 
 // Core shell (use GitHub Pages base path)
-const BASE_URL = '/AGENT_LEE_X/';
+// Determine base URL at runtime for dev vs GitHub Pages
+const BASE_URL = self?.location?.pathname?.includes('/AGENT_LEE_X/') ? '/AGENT_LEE_X/' : (self.__BASE_URL__ || '/');
 const PRECACHE_URLS = [
   BASE_URL,
   `${BASE_URL}index.html`,

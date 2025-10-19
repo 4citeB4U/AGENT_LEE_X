@@ -14,9 +14,12 @@ import { defineConfig, loadEnv } from 'vite';
 
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
+    const isDev = mode === 'development'
     return {
       plugins: [react()],
-      base: '/AGENT_LEE_X/',
+      // Use root base in dev to avoid 404s when opening http://localhost:5173/
+      // Keep GitHub Pages base in build/preview
+      base: isDev ? '/' : '/AGENT_LEE_X/',
       define: {
         'process.env.API_KEY': JSON.stringify(env.VITE_GEMINI_API_KEY || env.AGENT_LEE_X || env.GEMINI_API_KEY),
         'process.env.GEMINI_API_KEY': JSON.stringify(env.VITE_GEMINI_API_KEY || env.AGENT_LEE_X || env.GEMINI_API_KEY),
