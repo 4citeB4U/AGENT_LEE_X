@@ -9,7 +9,7 @@ ICON_SIG: CD534113
 SPDX-License-Identifier: MIT
 */
 
-# Agent Lee X — Autonomous Personal Computer (APC)
+# Agent Lee X.5 — Autonomous Personal Computer (APC)
 
 ---
 
