@@ -163,6 +163,60 @@ const AppContent: React.FC = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
+    // Position 2 toggles: avatar and camera can be on simultaneously
+    const [pos2AvatarOn, setPos2AvatarOn] = useState(false);
+    const [pos2CameraOn, setPos2CameraOn] = useState(false);
+    const videoRef = useRef<HTMLVideoElement | null>(null);
+    const cameraStreamRef = useRef<MediaStream | null>(null);
+    const [cameraError, setCameraError] = useState<string | null>(null);
+
+    const stopCamera = useCallback(() => {
+        const s = cameraStreamRef.current;
+        if (s) {
+            s.getTracks().forEach(t => t.stop());
+            cameraStreamRef.current = null;
+        }
+        if (videoRef.current) {
+            videoRef.current.srcObject = null;
+        }
+    }, []);
+
+    const startCamera = useCallback(async () => {
+        if (cameraStreamRef.current) return;
+        try {
+            const s = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } },
+                audio: false,
+            });
+            cameraStreamRef.current = s;
+            if (videoRef.current) {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                (videoRef.current as any).srcObject = s;
+            }
+            setCameraError(null);
+        } catch (e: any) {
+            console.error('Camera error:', e);
+            setCameraError('Camera unavailable');
+        }
+    }, []);
+
+    // Start/stop camera based on camera toggle
+    useEffect(() => {
+        if (pos2CameraOn) startCamera(); else stopCamera();
+    }, [pos2CameraOn, startCamera, stopCamera]);
+
+    // Clean up camera on visibility hide/unload
+    useEffect(() => {
+        const onVis = () => { if (document.hidden) stopCamera(); };
+        window.addEventListener('visibilitychange', onVis);
+        window.addEventListener('beforeunload', stopCamera);
+        return () => {
+            window.removeEventListener('visibilitychange', onVis);
+            window.removeEventListener('beforeunload', stopCamera);
+            stopCamera();
+        };
+    }, [stopCamera]);
+
     // Boot Notepad OS once
     useEffect(() => {
         memoryStore.init({ recycleDays: 7 });
@@ -1318,27 +1372,10 @@ ACTIVE CHARACTER PROFILE (for consistency):
         flex: 1;
         justify-content: flex-end;
     }
-    .header-control-btn { 
-        background: transparent;
-        border: none;
-        cursor: pointer; 
-        padding: 0;
-        transition: transform 0.2s ease; 
-        opacity: 1;
-        border-radius: 0;
-        overflow: visible;
-        position: relative;
-        line-height: 0;
-    }
-    .header-control-btn:hover { 
-        transform: translateY(-1px); 
-    }
-    .header-control-btn img { 
-        width: 42px; 
-        height: auto; 
-        object-fit: contain; 
-        display: block;
-    }
+    /* Header pure-image buttons (for #1/#2) */
+    .image-btn{ width:36px; height:36px; padding:0; margin:0; border:none; background:none; cursor:pointer; display:block; border-radius:8px; overflow:hidden; }
+    .image-btn img{ width:100%; height:100%; display:block; object-fit:cover; }
+    .image-btn[aria-pressed="true"]{ outline:2px solid var(--border-color); outline-offset:2px; border-radius:8px; }
     .mac-million-btn:hover {
         box-shadow: 0 4px 20px rgba(212, 175, 55, 0.4);
     }
@@ -1436,18 +1473,21 @@ ACTIVE CHARACTER PROFILE (for consistency):
     .research-mode-btn:hover::after { border-color: rgba(212, 175, 55, 0.5); box-shadow: 0 6px 12px rgba(0,0,0,0.25); }
     .research-mode-btn.active::after { border-color: var(--accent-bg); box-shadow: 0 8px 16px rgba(212, 175, 55, 0.35); }
     .research-mode-btn:focus-visible { outline: 2px solid var(--accent-bg); outline-offset: 3px; }
+    .is-hidden{ display:none !important; }
+    :root{ --rail-h: 64px; --rail-radius: 12px; }
     .bottom-controls-wrapper { display: flex; flex-direction: column; gap: 0.75rem; margin-top: auto; flex-shrink: 0; }
-    .central-input-bar { display: flex; gap: 0.75rem; background: #111; padding: 0.6rem 0.9rem; border-radius: 0.5rem; border: 1px solid var(--border-color); flex-grow: 1; align-items: center; min-height: 68px; }
-    .central-input-bar textarea { flex-grow: 1; background: #222; color: #f9fafb; border: 1px solid var(--border-color); border-radius: 0.5rem; padding: 0.6rem 0.9rem; font-size: 1rem; resize: none; min-height: 50px; max-height: 140px; line-height: 1.4; }
+    /* Gold rail container */
+    .central-input-bar{ display:grid; grid-template-columns: auto 1fr var(--rail-h); align-items:center; gap:.5rem; padding:.55rem .6rem; background:#1a1a1a; border:1px solid var(--border-color); border-radius: var(--rail-radius); min-height: calc(var(--rail-h) + 1px); }
+    .central-input-bar textarea { width:100%; height: var(--rail-h); background:#222; color:#f9fafb; border: 1px solid var(--border-color); border-radius:10px; padding:.45rem .65rem; font-size: 1rem; resize: none; line-height: 1.4; }
     .central-input-bar textarea::placeholder { color: #d4af37a0; }
     .central-input-bar textarea:focus { outline: none; box-shadow: 0 0 0 2px var(--border-color); }
-    .input-buttons { display: flex; flex-direction: column; justify-content: space-between; gap: 0.5rem; }
-    .input-buttons.horizontal { flex-direction: row; gap: 0.5rem; align-items: center; }
-    .input-buttons button, .note-picker-btn { background: var(--accent-bg); color: var(--accent-text); border: none; border-radius: 0.5rem; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s ease; }
-    .input-buttons button.mic-button { background-color: #444; color: white; }
+    .input-buttons { display: contents; }
+    .input-buttons.horizontal { display: contents; }
+    .input-buttons button, .note-picker-btn { border-radius: 0.5rem; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s ease; }
+    .input-buttons button.mic-button { width: var(--rail-h); height: var(--rail-h); background-color: #444; color: white; border:1px solid var(--lee-gold-2); box-shadow:0 0 0 1px rgba(202,162,74,.15) inset; }
     .input-buttons button.mic-button.always-on { box-shadow: 0 0 8px 2px rgba(212, 175, 55, 0.8); }
     .input-buttons button.mic-button.listening { background-color: #d43737; animation: pulse-red 1.5s infinite; box-shadow: none; }
-    .input-buttons button.send-button { background-color: #22c55e; color: white; }
+    .input-buttons button.send-button { width:44px; height:44px; background-color: #22c55e; color: white; }
     .input-buttons button.send-button:hover { background-color: #16a34a; }
     .input-buttons button svg { width: 20px; height: 20px; flex-shrink: 0; }
     @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(212, 55, 55, 0.7); } 70% { box-shadow: 0 0 0 8px rgba(212, 55, 55, 0); } 100% { box-shadow: 0 0 0 0 rgba(212, 55, 55, 0); } }
@@ -1468,6 +1508,14 @@ ACTIVE CHARACTER PROFILE (for consistency):
     .character-selector-container { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem; padding: 0.5rem; background: rgba(0,0,0,0.2); border-radius: 0.5rem; }
     .character-selector-container label { font-weight: 500; color: var(--text-secondary); }
     .character-selector-container select { background: #333; color: #fff; border: 1px solid var(--border-color); border-radius: 0.375rem; padding: 0.25rem 0.5rem; }
+
+            /* Position 2 square left slot equal to mic size */
+            :root{ --lee-gold-2:#8c6a18; }
+            .left-slot{ min-width: var(--rail-h); height: var(--rail-h); display:flex; align-items:center; justify-content:flex-start; gap:.35rem; padding-left:0; flex:0 0 auto; transition:width .12s ease; overflow:hidden; border-radius:8px; }
+            .left-slot.left-slot--empty{ width:0; min-width:0; height:0; gap:0; overflow:hidden; }
+            .pos2-square{ width:var(--rail-h); height:var(--rail-h); border-radius:.5rem; overflow:hidden; display:block; position:relative; cursor:pointer; background:#000; border:1px solid var(--lee-gold-2); box-shadow:0 0 0 1px rgba(202,162,74,.15) inset; }
+            .pos2-square img, .pos2-square video{ width:100%; height:100%; object-fit:cover; display:block; }
+            .camera-error-inline{ position:absolute; inset:0; display:grid; place-items:center; color:#d9c58a; background:rgba(0,0,0,.5); font-size:12px; }
     
     /* --- Responsive Design for Mobile & Tablet --- */
     @media (max-width: 960px) {
@@ -1751,8 +1799,8 @@ ACTIVE CHARACTER PROFILE (for consistency):
                 />
             )}
             {browserUrl && <InAppBrowser url={browserUrl} onClose={() => setBrowserUrl(null)} />}
-            {/* Top Level Header */}
-            <header className="top-banner-header">
+            {/* Top Level Header (never hides) */}
+            <header className={`top-banner-header`}>
                 <div className="header-left">
                     <div className="logo-container">
                         <img src={images.logo} alt="RWD Logo" className="header-logo" />
@@ -1765,31 +1813,27 @@ ACTIVE CHARACTER PROFILE (for consistency):
                     </div>
                 </div>
                 <div className="header-right">
-                    <button 
-                        type="button" 
-                        className={`header-control-btn ${showCharacterStudio ? 'active' : ''}`}
-                        onClick={() => setShowCharacterStudio(!showCharacterStudio)}
-                        title={`Agent Lee Toggle - ${showCharacterStudio ? 'Position 2 (ON)' : 'Position 1 (OFF)'}`}
-                    >
-                        <img src={images.agentButton} alt="Agent Lee Toggle" />
-                    </button>
-                    <button 
-                        type="button" 
-                        className={`header-control-btn ${showCameraFeed ? 'active' : ''}`}
-                        onClick={() => setShowCameraFeed(!showCameraFeed)}
-                        title={`Camera Feed Toggle - ${showCameraFeed ? 'Position 2 (ON)' : 'Position 1 (OFF)'}`}
-                    >
-                        <img src={images.cameraFeed} alt="Camera Feed Toggle" />
-                    </button>
+                    {/* #1 Avatar button (pure image) */}
                     <button
                         type="button"
-                        aria-label="Open Marketing Dashboard"
-                        title="Open Marketing Dashboard"
-                        onClick={() => { window.location.hash = '/dashboard' }}
-                        className="header-control-btn"
+                        className="image-btn"
+                        {...(pos2AvatarOn ? { 'aria-pressed': 'true' } : {})}
+                        title="Show avatar in input"
+                        onClick={() => setPos2AvatarOn(v => !v)}
                     >
-                        <img src={images.icons.general} alt="Dashboard" />
+                        <img src={images.agentButton} alt="Avatar toggle" />
                     </button>
+                    {/* #2 Camera button (pure image) */}
+                    <button
+                        type="button"
+                        className="image-btn"
+                        {...(pos2CameraOn ? { 'aria-pressed': 'true' } : {})}
+                        title="Show camera in input"
+                        onClick={() => setPos2CameraOn(v => !v)}
+                    >
+                        <img src={images.cameraFeed} alt="Camera toggle" />
+                    </button>
+                    {/* #3 search/spyglass removed intentionally */}
                 </div>
             </header>
 
@@ -1799,13 +1843,13 @@ ACTIVE CHARACTER PROFILE (for consistency):
                 <style>{styles}</style>
                 
                 <div className="left-pane">
-                    <div className="top-info-wrapper" id="agent-avatar-container">
+                    <div className={`top-info-wrapper ${pos2AvatarOn ? 'is-hidden' : ''}`} id="agent-avatar-container">
                         <div className="agent-avatar-simple">
                             <img src={images.agentLeeAvatar} alt="Agent Lee" className="avatar-image" />
                         </div>
                     </div>
                     {/* Agent output removed as requested */}
-                    <div id="camera-feed-container">
+                    <div id="camera-feed-container" className={`${pos2CameraOn ? 'is-hidden' : ''}`}>
                         <CameraFeed ref={cameraFeedRef} onCameraEnabled={handleCameraEnabled} />
                     </div>
                                         <div className="bottom-controls-wrapper">
@@ -1816,7 +1860,23 @@ ACTIVE CHARACTER PROFILE (for consistency):
                                                     showRecycleBin={showRecycleBin}
                                                     onToggleRecycleBin={() => setShowRecycleBin(v => !v)}
                                                 />
-                        <div className="central-input-bar" id="central-input-bar">
+                                                {/* Input Row with Position 2 at the left (square same size as mic) */}
+                                                <div className={`central-input-bar ${(!pos2AvatarOn && !pos2CameraOn) ? 'no-left' : ''}`} id="central-input-bar">
+                                                    <div id="pos2" className={`left-slot ${(!pos2AvatarOn && !pos2CameraOn) ? 'left-slot--empty' : ''}`} aria-live="polite">
+                                                        {/* Avatar square (image-only) */}
+                                                        {pos2AvatarOn && (
+                                                            <button id="avatarBox" className="pos2-square" aria-label="Avatar active (click to hide)" onClick={() => setPos2AvatarOn(false)}>
+                                                                <img src={images.agentLeeAvatar} alt="Avatar preview" />
+                                                            </button>
+                                                        )}
+                                                        {/* Camera square (live preview) */}
+                                                        {pos2CameraOn && (
+                                                            <div id="cameraBox" className="pos2-square" onClick={() => setPos2CameraOn(false)}>
+                                                                <video ref={videoRef} autoPlay muted playsInline />
+                                                                {cameraError && (<div className="camera-error-inline">{cameraError}</div>)}
+                                                            </div>
+                                                        )}
+                                                    </div>
                             <textarea
                                 id="central-prompt-input"
                                 value={promptInput}
