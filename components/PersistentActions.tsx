@@ -23,6 +23,9 @@ interface PersistentActionsProps {
         fileName?: string;
     };
     onAiAnalyze: () => void;
+    // New: integrate Recycle Bin as a first-class toolbar button
+    showRecycleBin?: boolean;
+    onToggleRecycleBin?: () => void;
 }
 
 const icons = {
@@ -36,7 +39,7 @@ const icons = {
     share: <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" fill="none" strokeLinecap="round" strokeLinejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M6 12m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0" /><path d="M18 6m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0" /><path d="M18 18m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0" /><path d="M8.7 10.7l6.6 -3.4" /><path d="M8.7 13.3l6.6 3.4" /></svg>,
 }
 
-const PersistentActions: React.FC<PersistentActionsProps> = ({ activeFeature, resultData, onAiAnalyze }) => {
+const PersistentActions: React.FC<PersistentActionsProps> = ({ activeFeature, resultData, onAiAnalyze, showRecycleBin = false, onToggleRecycleBin }) => {
     const { addNote, notes, activeNoteId } = useContext(NotepadContext);
     const [syncStatus, setSyncStatus] = useState('Sync');
 
@@ -143,31 +146,65 @@ const PersistentActions: React.FC<PersistentActionsProps> = ({ activeFeature, re
     const isNotepadActiveWithNote = activeFeature === 'notepad' && !!activeNote;
     const isAnalysisDisabled = !isNotepadActiveWithNote && !isContentAvailable;
 
-    const styles = `
-        .persistent-actions-wrapper { position: relative; }
-        .persistent-actions-container {
-            display: flex;
-            gap: 0.25rem;
-            align-items: stretch;
-            overflow-x: auto;
-            padding: 0.05rem 1.5rem 0.1rem 1.5rem; /* very tight vertical padding, space for arrows */
-            -ms-overflow-style: none;
-            scrollbar-width: none;
-            scroll-behavior: smooth;
-        }
-        .persistent-actions-container::-webkit-scrollbar { display: none; }
-    .pa-scroll-btn { position: absolute; top: 0; bottom: 0; width: 1.25rem; display: flex; align-items: center; justify-content: center; background: linear-gradient(to right, rgba(0,0,0,0.65), rgba(0,0,0,0)); border: none; cursor: pointer; z-index: 5; padding: 0; }
-        .pa-scroll-btn.right { right: 0; background: linear-gradient(to left, rgba(0,0,0,0.65), rgba(0,0,0,0)); }
-        .pa-scroll-btn.left { left: 0; }
-    .pa-scroll-btn svg { width: 16px; height: 16px; stroke: #39FF14; }
-        .pa-scroll-btn:hover svg { filter: drop-shadow(0 0 4px #39FF14); }
-        .pa-scroll-btn[disabled] { opacity: 0.25; cursor: default; }
-        .persistent-actions-container:active { cursor: grabbing; }
-        .action-button-green { background: #064e3b; border: 1px solid #0d6e52; }
-        .action-button-green:hover { background: #0a7a5b; border-color: #39FF14; }
-        .action-button-green:focus-visible { outline: 2px solid #39FF14; outline-offset: 2px; }
-        .action-button-green[disabled] { background: #244c42; opacity: 0.55; border-color: #244c42; }
-    `;
+        const styles = `
+            :root{
+                --gold:#caa24a; --gold-2:#8c6a18; --panel:#141414; --ink:#e6e6e6;
+                --tool-size:56px;           /* desktop compact */
+                --tool-size-sm:48px;        /* small screens */
+                --tool-gap:8px;
+                --tool-radius:12px;
+                --pad-x:12px;               /* balanced side padding */
+            }
+
+            .persistent-actions-wrapper { position: relative; }
+            /* Toolbar container — remove odd extra left space */
+            .tools {
+                display:flex; flex-wrap:nowrap; align-items:center; gap:var(--tool-gap);
+                padding:8px var(--pad-x);
+                background:linear-gradient(#0b0b0b,#121212);
+                border-top:1px solid #333; border-bottom:1px solid #333;
+                /* override potential parent padding influence */
+                margin-left: 0 !important;
+            }
+            /* horizontal scroll when overflow */
+            .tools { overflow-x:auto; -ms-overflow-style:none; scrollbar-width:none; }
+            .tools::-webkit-scrollbar { display:none; }
+
+            /* Compact density */
+            .tools--compact .tool{ width:var(--tool-size); height:var(--tool-size); }
+            @media (max-width: 720px){ .tools--compact .tool{ width:var(--tool-size-sm); height:var(--tool-size-sm); } }
+
+            /* Button look */
+            .tool{
+                position:relative; display:flex; flex-direction:column; align-items:center; justify-content:center;
+                border-radius:var(--tool-radius);
+                background:radial-gradient(75% 75% at 50% 28%, #2a2a2a 0%, #111 78%);
+                border:1px solid var(--gold-2);
+                box-shadow:0 0 0 1px rgba(202,162,74,.18) inset;
+                color:var(--ink); cursor:pointer; user-select:none;
+                transition:transform .08s ease, box-shadow .15s ease, opacity .15s ease;
+                flex: 0 0 auto; padding: 0; /* fixed size */
+            }
+            .tool:active{ transform:translateY(1px); }
+            .tool[disabled]{ opacity:.35; cursor:not-allowed; }
+
+            /* Pressed/toggled (for Recycle Bin open) */
+            .tool[aria-pressed="true"]{
+                box-shadow:0 0 0 2px var(--gold) inset, 0 0 10px rgba(202,162,74,.28);
+            }
+
+            /* Icon + label sizing */
+            .tool__icon { display: grid; place-items: center; }
+            .tool__icon svg { width: 20px; height: 20px; }
+            .tool__label{ margin-top:4px; font-size:11px; letter-spacing:.2px; color:#d6c48f; line-height:1; text-align:center; }
+
+            /* Optional subtle left/right scroll buttons if needed later */
+            .pa-scroll-btn { position: absolute; top: 0; bottom: 0; width: 1.25rem; display: none; align-items: center; justify-content: center; background: linear-gradient(to right, rgba(0,0,0,0.65), rgba(0,0,0,0)); border: none; cursor: pointer; z-index: 5; padding: 0; }
+            .pa-scroll-btn.right { right: 0; background: linear-gradient(to left, rgba(0,0,0,0.65), rgba(0,0,0,0)); }
+            .pa-scroll-btn.left { left: 0; }
+            .pa-scroll-btn svg { width: 16px; height: 16px; stroke: #39FF14; }
+            .pa-scroll-btn[disabled] { opacity: 0.25; cursor: default; }
+        `;
 
     const scrollRef = useRef<HTMLDivElement | null>(null);
     const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -206,39 +243,31 @@ const PersistentActions: React.FC<PersistentActionsProps> = ({ activeFeature, re
         <>
             <style>{styles}</style>
                         <div className="persistent-actions-wrapper">
-                                <button
+                            <div ref={scrollRef} className="tools tools--compact" role="toolbar" aria-label="Note actions"
+                                     onWheel={(e) => { if (e.shiftKey) { e.preventDefault(); (e.currentTarget as HTMLDivElement).scrollBy({ left: e.deltaY, behavior: 'smooth' }); } }}>
+                                <ActionButton onClick={() => { addNote('New Note', { type: 'text', text: '' }); }} icon={icons.newNote} label="New" />
+                                <ActionButton onClick={handleSave} icon={icons.save} label="Save" disabled={!hasSaveableContent || activeFeature === 'notepad'} />
+                                <ActionButton onClick={onAiAnalyze} icon={icons.ai} label="AI" disabled={isAnalysisDisabled} />
+                                <ActionButton onClick={handleSync} icon={icons.sync} label={syncStatus} disabled={syncStatus !== 'Sync'} />
+                                <ActionButton onClick={handleExport} icon={icons.export} label="Export" disabled={!activeNote} />
+                                <ActionButton onClick={handlePrint} icon={icons.print} label="Print" disabled={!activeNote || activeNote.content.type !== 'text'} />
+                                <ActionButton onClick={handleShare} icon={icons.share} label="Share" disabled={!activeNote || !navigator.share} />
+                                {/* Recycle Bin integrated as a normal toolbar button */}
+                                                                <button
                                     type="button"
-                                    className="pa-scroll-btn left"
-                                    aria-label="Scroll actions left"
-                                    disabled={!canScrollLeft}
-                                    onClick={() => { const el = scrollRef.current; if (el) el.scrollBy({ left: -220, behavior: 'smooth' }); }}
+                                    className="tool"
+                                                                    {...(showRecycleBin ? { 'aria-pressed': 'true' } : { 'aria-pressed': 'false' })}
+                                    aria-label="Recycle Bin"
+                                    title="Recycle Bin"
+                                    onClick={() => onToggleRecycleBin && onToggleRecycleBin()}
                                 >
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+                                    <span className="tool__icon" aria-hidden="true">
+                                        {/* Simple bin icon */}
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                                    </span>
+                                    <span className="tool__label">Recycle</span>
                                 </button>
-                                <div
-                                    ref={scrollRef}
-                                    className="persistent-actions-container"
-                                    onWheel={(e) => { if (e.shiftKey) { e.preventDefault(); (e.currentTarget as HTMLDivElement).scrollBy({ left: e.deltaY, behavior: 'smooth' }); } }}
-                                >
-                                        <ActionButton onClick={() => { addNote('New Note', { type: 'text', text: '' }); }} icon={icons.newNote} label="New Note" />
-                                        <ActionButton onClick={handleSave} icon={icons.save} label="Save Result" disabled={!hasSaveableContent || activeFeature === 'notepad'} />
-                                        <div className="w-px h-5 bg-gray-600 mx-1 flex-shrink-0"></div>
-                                        <ActionButton onClick={onAiAnalyze} icon={icons.ai} label="AI Analysis" disabled={isAnalysisDisabled} />
-                                        <div className="w-px h-5 bg-gray-600 mx-1 flex-shrink-0"></div>
-                                        <ActionButton onClick={handleSync} icon={icons.sync} label={syncStatus} disabled={syncStatus !== 'Sync'} />
-                                        <ActionButton onClick={handleExport} icon={icons.export} label="Export Note" disabled={!activeNote} />
-                                        <ActionButton onClick={handlePrint} icon={icons.print} label="Print Note" disabled={!activeNote || activeNote.content.type !== 'text'} />
-                                        <ActionButton onClick={handleShare} icon={icons.share} label="Share Note" disabled={!activeNote || !navigator.share} />
-                                </div>
-                                <button
-                                    type="button"
-                                    className="pa-scroll-btn right"
-                                    aria-label="Scroll actions right"
-                                    disabled={!canScrollRight}
-                                    onClick={() => { const el = scrollRef.current; if (el) el.scrollBy({ left: 220, behavior: 'smooth' }); }}
-                                >
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
-                                </button>
+                            </div>
                         </div>
         </>
     );
@@ -246,15 +275,10 @@ const PersistentActions: React.FC<PersistentActionsProps> = ({ activeFeature, re
 
 const ActionButton: React.FC<{onClick: () => void, icon: React.ReactElement, label: string, disabled?: boolean}> = ({onClick, icon, label, disabled}) => {
     return (
-        <button
-            onClick={onClick}
-            disabled={disabled}
-            title={label}
-                        className="action-button-green flex flex-col items-center justify-center w-12 h-9 text-white rounded-md transition-all disabled:cursor-not-allowed p-0.5 text-center flex-shrink-0"
-        >
-            {icon}
-            <span className="text-[9px] mt-0.5 leading-[1.05]">{label}</span>
-        </button>
+                <button onClick={onClick} disabled={disabled} title={label} className="tool">
+                    <span className="tool__icon" aria-hidden="true">{icon}</span>
+                    <span className="tool__label">{label}</span>
+                </button>
     )
 }
 

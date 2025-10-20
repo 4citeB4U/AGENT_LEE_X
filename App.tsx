@@ -1808,14 +1808,14 @@ ACTIVE CHARACTER PROFILE (for consistency):
                     <div id="camera-feed-container">
                         <CameraFeed ref={cameraFeedRef} onCameraEnabled={handleCameraEnabled} />
                     </div>
-                    <div className="bottom-controls-wrapper">
-                                                <PersistentActions activeFeature={activeFeature as Feature} resultData={currentResultData} onAiAnalyze={handleGlobalAiAnalysis} />
-                                                                        <div className="flex items-center justify-end px-4 -mt-1">
-                                                                                    <button
-                                                            className="text-[11px] text-gray-300 hover:text-white underline underline-offset-2"
-                                                                                        onClick={() => setShowRecycleBin(v => !v)}
-                                                        >{showRecycleBin ? 'Hide' : 'Show'} Recycle Bin</button>
-                                                </div>
+                                        <div className="bottom-controls-wrapper">
+                                                <PersistentActions
+                                                    activeFeature={activeFeature as Feature}
+                                                    resultData={currentResultData}
+                                                    onAiAnalyze={handleGlobalAiAnalysis}
+                                                    showRecycleBin={showRecycleBin}
+                                                    onToggleRecycleBin={() => setShowRecycleBin(v => !v)}
+                                                />
                         <div className="central-input-bar" id="central-input-bar">
                             <textarea
                                 id="central-prompt-input"
