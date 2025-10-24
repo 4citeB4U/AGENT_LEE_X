@@ -24,7 +24,11 @@ export default defineConfig(({ mode }) => {
           __BUILD_ID__: JSON.stringify(process.env.GITHUB_SHA || process.env.VERCEL_GIT_COMMIT_SHA || Date.now().toString()),
         'process.env.API_KEY': JSON.stringify(env.VITE_GEMINI_API_KEY || env.AGENT_LEE_X || env.GEMINI_API_KEY),
         'process.env.GEMINI_API_KEY': JSON.stringify(env.VITE_GEMINI_API_KEY || env.AGENT_LEE_X || env.GEMINI_API_KEY),
-        'process.env.VITE_GEMINI_API_KEY': JSON.stringify(env.VITE_GEMINI_API_KEY || env.AGENT_LEE_X || env.GEMINI_API_KEY)
+        'process.env.VITE_GEMINI_API_KEY': JSON.stringify(env.VITE_GEMINI_API_KEY || env.AGENT_LEE_X || env.GEMINI_API_KEY),
+        // Lightning (GPU) config — prefer public endpoint without embedding tokens when possible
+        'process.env.LIGHTNING_BASE_URL': JSON.stringify(env.LIGHTNING_BASE_URL || env.LIGHTNING_URL || ''),
+        'process.env.LIGHTNING_PROJECT_ID': JSON.stringify(env.LIGHTNING_PROJECT_ID || ''),
+        'process.env.LIGHTNING_API_TOKEN': JSON.stringify(env.LIGHTNING_API_TOKEN || '')
       },
       resolve: {
         alias: {

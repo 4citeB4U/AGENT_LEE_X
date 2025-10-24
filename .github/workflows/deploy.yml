@@ -39,6 +39,11 @@ jobs:
           MKTG_SNAPSHOT: ./data/snapshots/last.json
 
       - name: Build
+        env:
+          # Prefer environment secret used by Vite client. Fallback to alternative names if present.
+          VITE_GEMINI_API_KEY: ${{ secrets.VITE_GEMINI_API_KEY || secrets.GEMINI_API_KEY || secrets.AGENT_LEE_X }}
+          GEMINI_API_KEY:       ${{ secrets.GEMINI_API_KEY       || secrets.VITE_GEMINI_API_KEY || secrets.AGENT_LEE_X }}
+          API_KEY:              ${{ secrets.GEMINI_API_KEY       || secrets.VITE_GEMINI_API_KEY || secrets.AGENT_LEE_X }}
         run: |
           npm run build
           cp dist/index.html dist/404.html

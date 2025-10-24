@@ -13,6 +13,7 @@ SPDX-License-Identifier: MIT
 
 import type { GenReq, GenOut } from './engine.types';
 import geminiEngine from './engine.gemini';
+import lightningEngine from './engine.lightning';
 
 /**
  * Generates an image using the configured primary engine (Gemini).
@@ -24,14 +25,17 @@ import geminiEngine from './engine.gemini';
  */
 export async function generateImage(req: GenReq): Promise<GenOut> {
   try {
-    if (await geminiEngine.available()) {
+    if (await lightningEngine.available()) {
+      console.log(`Attempting generation with engine: ${lightningEngine.name}`);
+      return await lightningEngine.generate(req);
+    } else if (await geminiEngine.available()) {
       console.log(`Attempting generation with engine: ${geminiEngine.name}`);
       return await geminiEngine.generate(req);
     } else {
       throw new Error('The Gemini image generation engine is not available. Please check your configuration.');
     }
   } catch (err) {
-    console.error(`Engine ${geminiEngine.name} failed during generation.`, err);
+    console.error(`Image generation failed.`, err);
     // Re-throw the error to be handled by the UI.
     throw err;
   }
