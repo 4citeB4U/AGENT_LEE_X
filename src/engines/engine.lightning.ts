@@ -1,5 +1,5 @@
-import type { ImageEngine, GenReq, GenOut } from './engine.types';
 import * as lightning from '../services/lightningService';
+import type { GenOut, GenReq, ImageEngine } from './engine.types';
 
 class LightningEngine implements ImageEngine {
   name = 'lightning';

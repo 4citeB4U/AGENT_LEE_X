@@ -1,3 +1,24 @@
 name = "agentlee-gemini-proxy"
 main = "src/worker.ts"
 compatibility_date = "2024-09-01"
+
+# Non-sensitive defaults; override in Cloudflare dashboard or with `--var` at deploy
+[vars]
+# Comma-separated list of allowed Origins for CORS
+ALLOW_ORIGIN = "https://<your-username>.github.io, https://<your-username>.github.io/<your-repo>"
+# Base URL of your Lightning (vLLM/service) endpoint, e.g. https://<studio-domain>:8000
+LIGHTNING_BASE = ""
+FALLBACK_BASE = "" # optional: second Studio or CPU model
+ADMIN_WEBHOOK = "" # optional: Discord/Slack webhook
+
+# NOTE: Set secrets via `wrangler secret put <NAME>` in your environment, do not commit them:
+# - GEMINI_API_KEY
+# - LIGHTNING_TOKEN
+
+[triggers]
+crons = ["*/2 * * * *"]
+
+[[kv_namespaces]]
+binding = "STATUS_KV"
+# Replace with your KV id after creating the namespace in Cloudflare dashboard or via wrangler
+id = "KV_ID_PLACEHOLDER"

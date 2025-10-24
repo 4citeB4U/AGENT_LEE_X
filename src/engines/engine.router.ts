@@ -11,9 +11,9 @@ SPDX-License-Identifier: MIT
 
 // D:\AGENT_LEE_X\src\engines\engine.router.ts
 
-import type { GenReq, GenOut } from './engine.types';
 import geminiEngine from './engine.gemini';
 import lightningEngine from './engine.lightning';
+import type { GenOut, GenReq } from './engine.types';
 
 /**
  * Generates an image using the configured primary engine (Gemini).
