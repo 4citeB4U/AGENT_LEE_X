@@ -481,13 +481,77 @@ export const findRelevantMemory = async (prompt: string, memories: Note[]): Prom
 
 // createChat is used by the CommunicationControl component
 export const createChat = (userName?: string): Chat => {
-    // Build the comprehensive system prompt for Agent Lee
-    const systemInstruction = buildSystemPromptV11(userName || 'User');
+    // If a Worker proxy is configured, return a shim that streams via /api/chat
+    try {
+        const cfg: any = (typeof window !== 'undefined' && (window as any).AGENTLEE_CONFIG) ? (window as any).AGENTLEE_CONFIG : {};
+        const proxyUrl: string | undefined = cfg?.GEMINI_PROXY_URL;
+        if (proxyUrl) {
+            const u = new URL(proxyUrl);
+            const apiBase = `${u.protocol}//${u.host}`; // derive base from /gemini URL
+            const defaultPolicy = (cfg.DEFAULT_POLICY || 'FAST').toString().toUpperCase();
+            const systemInstruction = buildSystemPromptV11(userName || 'User');
 
+            class WorkerChatShim {
+                // Minimal method surface used by App.tsx
+                async sendMessageStream({ message }: { message: string }) : Promise<AsyncIterable<{ text?: string }>> {
+                    const body = { messages: [{ role: 'system', content: systemInstruction }, { role: 'user', content: message }] };
+                    const res = await fetch(`${apiBase}/api/chat?policy=${encodeURIComponent(defaultPolicy)}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(body),
+                    });
+                    if (!res.body) throw new Error('No response body from proxy');
+                    const reader = res.body.getReader();
+                    const decoder = new TextDecoder();
+
+                    async function* stream() {
+                        let buffer = '';
+                        while (true) {
+                            const { value, done } = await reader.read();
+                            if (done) break;
+                            buffer += decoder.decode(value, { stream: true });
+                            // Parse SSE: split on double newlines
+                            let idx;
+                            while ((idx = buffer.indexOf('\n\n')) !== -1) {
+                                const chunk = buffer.slice(0, idx).trim();
+                                buffer = buffer.slice(idx + 2);
+                                if (!chunk) continue;
+                                for (const line of chunk.split('\n')) {
+                                    const m = /^data:\s*(.*)$/.exec(line);
+                                    if (!m) continue;
+                                    const data = m[1];
+                                    if (data === '[DONE]') return;
+                                    try {
+                                        const json = JSON.parse(data);
+                                        const token = json?.choices?.[0]?.delta?.content || json?.choices?.[0]?.message?.content || '';
+                                        if (token) yield { text: token as string };
+                                    } catch {}
+                                }
+                            }
+                        }
+                        // flush remaining line
+                        if (buffer.trim().startsWith('data:')) {
+                            const data = buffer.trim().replace(/^data:\s*/, '');
+                            if (data !== '[DONE]') {
+                                try {
+                                    const json = JSON.parse(data);
+                                    const token = json?.choices?.[0]?.delta?.content || json?.choices?.[0]?.message?.content || '';
+                                    if (token) yield { text: token as string };
+                                } catch {}
+                            }
+                        }
+                    }
+                    return stream();
+                }
+            }
+            return new (WorkerChatShim as any)() as unknown as Chat;
+        }
+    } catch {}
+
+    // Default: direct Gemini chat
+    const systemInstruction = buildSystemPromptV11(userName || 'User');
     return getAI().chats.create({
         model: 'gemini-2.5-flash',
-        config: {
-            systemInstruction,
-        }
+        config: { systemInstruction }
     });
 };
