@@ -9,6 +9,9 @@ ICON_SIG: CD534113
 SPDX-License-Identifier: MIT
 */
 window.AGENTLEE_CONFIG = {
-  // Leave empty by default; Worker URL is produced by CI deploy and can be injected if desired.
-  GEMINI_PROXY_URL: ""
+  // For local development, point to `wrangler dev` (http://127.0.0.1:8787/api/chat)
+  CHAT_PROXY_URL: "",
+  // Optional override for /ops/metrics endpoint; defaults to `${origin}/ops/metrics`
+  OPS_METRICS_URL: "",
+  DEFAULT_POLICY: "FAST"
 };

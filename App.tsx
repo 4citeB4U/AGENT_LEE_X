@@ -9,10 +9,11 @@ SPDX-License-Identifier: MIT
 */
 
 import type { Chat } from '@google/genai'; // Import Chat type
-import React, { Suspense, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import React, { Suspense, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 // Removed AgentOutput per request
 import ApiKeyPrompt from './components/ApiKeyPrompt'; // Import API key prompt
 import CameraFeed, { CameraFeedHandle } from './components/CameraFeed';
+import HealthBadge from './components/HealthBadge';
 import InAppBrowser from './components/InAppBrowser';
 import LoadingSpinner from './components/LoadingSpinner';
 import OnboardingGuide from './components/OnboardingGuide';
@@ -93,13 +94,30 @@ const AppContent: React.FC = () => {
     const [systemInstruction, setSystemInstruction] = useState('');
     const [mediaFile, setMediaFile] = useState<File | null>(null);
     const [documentFile, setDocumentFile] = useState<File | null>(null);
+
+    const metricsUrl = useMemo(() => {
+        if (typeof window === 'undefined') return '';
+        const cfg = (window as any).AGENTLEE_CONFIG || {};
+        if (cfg.OPS_METRICS_URL) return String(cfg.OPS_METRICS_URL);
+        if (cfg.CHAT_PROXY_URL) {
+            try {
+                const parsed = new URL(String(cfg.CHAT_PROXY_URL));
+                return `${parsed.protocol}//${parsed.host}/ops/metrics`;
+            } catch {
+                return '';
+            }
+        }
+        return '';
+    }, []);
     
     // Agent Lee States
     const [agentState, setAgentState] = useState<AgentState>('idle');
+    const agentStateRef = useRef(agentState);
     const [isListening, setIsListening] = useState(false);
     const [isAlwaysListening, setIsAlwaysListening] = useState(false);
     const isAlwaysListeningRef = useRef(isAlwaysListening);
     isAlwaysListeningRef.current = isAlwaysListening;
+    useEffect(() => { agentStateRef.current = agentState; }, [agentState]);
     
     // NEW: State for interruption handling
     const [interruptedResponse, setInterruptedResponse] = useState<TransmissionLogEntry | null>(null);
@@ -587,19 +605,47 @@ const AppContent: React.FC = () => {
             if (isMicZoomed) closeMicZoom(); else openMicZoom();
             return;
         }
+        if (e && e.detail > 1) {
+            return;
+        }
         const trimmed = promptInput.trim();
         // 1. If there's text, treat as send
         if (trimmed.length > 0 && !isSubmitDisabled) {
             handleSubmit(promptInput);
             return;
         }
-        // 2. If currently in a push-to-talk session and listening, finalize (second click behavior)
-        if (sessionModeRef.current && isListening) {
-            finalizePushToTalkSession();
+        if (!isOnboardingComplete) return;
+
+        if (!isAlwaysListeningRef.current) {
+            setIsAlwaysListening(true);
+            appendToLog('SYSTEM', "[System: Always-on microphone enabled. Say 'Agent Lee' to wake me.]");
+            sessionModeRef.current = false;
+            wakeActiveRef.current = false;
+            clearSilenceTimer();
+            const recognition = recognitionRef.current;
+            if (recognition && agentStateRef.current === 'idle' && !isListening) {
+                try {
+                    recognition.start();
+                } catch (err) {
+                    console.warn('Failed to start always-on listening immediately:', err);
+                }
+            }
             return;
         }
-        // 3. Otherwise start a push-to-talk session (single click start)
-        startPushToTalkSession();
+
+        setIsAlwaysListening(false);
+        appendToLog('SYSTEM', '[System: Always-on microphone disabled.]');
+        wakeActiveRef.current = false;
+        sessionModeRef.current = false;
+        clearSilenceTimer();
+        const recognition = recognitionRef.current;
+        if (recognition) {
+            try {
+                recognition.stop();
+            } catch (err) {
+                console.warn('Failed to stop recognition after disabling always-on:', err);
+            }
+        }
     };
 
     // --- Push-To-Talk Session Helpers (Todo #1) ---
@@ -1372,6 +1418,10 @@ ACTIVE CHARACTER PROFILE (for consistency):
         flex: 1;
         justify-content: flex-end;
     }
+    .header-metrics {
+        display: flex;
+        align-items: center;
+    }
     /* Header pure-image buttons (for #1/#2) */
     .image-btn{ width:36px; height:36px; padding:0; margin:0; border:none; background:none; cursor:pointer; display:block; border-radius:8px; overflow:hidden; }
     .image-btn img{ width:100%; height:100%; display:block; object-fit:cover; }
@@ -1417,14 +1467,18 @@ ACTIVE CHARACTER PROFILE (for consistency):
     .mac-million-mic {
         background: transparent !important;
         border: none !important;
-        border-radius: 0 !important;
+        border-radius: 50% !important;
         padding: 0 !important;
-        width: 52px !important;
-        height: 52px !important;
+        width: var(--mic-diameter) !important;
+        height: var(--mic-diameter) !important;
+        max-width: 100% !important;
+        max-height: 100% !important;
         display: inline-flex !important;
         align-items: center !important;
         justify-content: center !important;
         line-height: 0 !important;
+        box-sizing: border-box !important;
+        aspect-ratio: 1 / 1 !important;
     }
     .mac-mic-image {
         width: 100% !important;
@@ -1474,17 +1528,19 @@ ACTIVE CHARACTER PROFILE (for consistency):
     .research-mode-btn.active::after { border-color: var(--accent-bg); box-shadow: 0 8px 16px rgba(212, 175, 55, 0.35); }
     .research-mode-btn:focus-visible { outline: 2px solid var(--accent-bg); outline-offset: 3px; }
     .is-hidden{ display:none !important; }
-    :root{ --rail-h: 64px; --rail-radius: 12px; }
+    :root{ --rail-h: 64px; --rail-radius: 12px; --mic-scale: 6.5; --mic-diameter: calc(var(--rail-h) * var(--mic-scale)); }
+    @media (max-width: 1400px) { :root{ --mic-scale: 5.4; } }
+    @media (max-width: 1200px) { :root{ --mic-scale: 4.2; } }
     .bottom-controls-wrapper { display: flex; flex-direction: column; gap: 0.75rem; margin-top: auto; flex-shrink: 0; }
     /* Gold rail container */
-    .central-input-bar{ display:grid; grid-template-columns: auto 1fr var(--rail-h); align-items:center; gap:.5rem; padding:.55rem .6rem; background:#1a1a1a; border:1px solid var(--border-color); border-radius: var(--rail-radius); min-height: calc(var(--rail-h) + 1px); }
-    .central-input-bar textarea { width:100%; height: var(--rail-h); background:#222; color:#f9fafb; border: 1px solid var(--border-color); border-radius:10px; padding:.45rem .65rem; font-size: 1rem; resize: none; line-height: 1.4; }
+    .central-input-bar{ display:grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items:center; gap:.75rem; padding:.75rem 1rem; background:#1a1a1a; border:1px solid var(--border-color); border-radius: var(--rail-radius); min-height: calc(var(--mic-diameter) + 16px); }
+    .central-input-bar textarea { width:100%; min-height: max(var(--rail-h), calc(var(--mic-diameter) * 0.55)); max-height: var(--mic-diameter); background:#222; color:#f9fafb; border: 1px solid var(--border-color); border-radius:10px; padding:.6rem .9rem; font-size: 1rem; resize: none; line-height: 1.45; }
     .central-input-bar textarea::placeholder { color: #d4af37a0; }
     .central-input-bar textarea:focus { outline: none; box-shadow: 0 0 0 2px var(--border-color); }
     .input-buttons { display: contents; }
     .input-buttons.horizontal { display: contents; }
     .input-buttons button, .note-picker-btn { border-radius: 0.5rem; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s ease; }
-    .input-buttons button.mic-button { width: var(--rail-h); height: var(--rail-h); background-color: #444; color: white; border:1px solid var(--lee-gold-2); box-shadow:0 0 0 1px rgba(202,162,74,.15) inset; }
+    .input-buttons button.mic-button { width: var(--mic-diameter); height: var(--mic-diameter); background-color: #444; color: white; border:1px solid var(--lee-gold-2); box-shadow:0 0 0 1px rgba(202,162,74,.15) inset; border-radius: 50%; flex: 0 0 var(--mic-diameter); overflow: hidden; position: relative; }
     .input-buttons button.mic-button.always-on { box-shadow: 0 0 8px 2px rgba(212, 175, 55, 0.8); }
     .input-buttons button.mic-button.listening { background-color: #d43737; animation: pulse-red 1.5s infinite; box-shadow: none; }
     .input-buttons button.send-button { width:44px; height:44px; background-color: #22c55e; color: white; }
@@ -1519,6 +1575,7 @@ ACTIVE CHARACTER PROFILE (for consistency):
     
     /* --- Responsive Design for Mobile & Tablet --- */
     @media (max-width: 960px) {
+        :root{ --mic-scale: 1.85; }
         html, body, #root {
             height: auto;
             overflow: auto;
@@ -1532,7 +1589,7 @@ ACTIVE CHARACTER PROFILE (for consistency):
             padding-top: env(safe-area-inset-top, 0.5rem);
             padding-left: env(safe-area-inset-left, 0.5rem);
             padding-right: env(safe-area-inset-right, 0.5rem);
-            padding-bottom: 160px; /* Increased space for the fixed input bar */
+            padding-bottom: calc(var(--mic-diameter) + 120px); /* Ensure full input rail stays in view */
         }
         
         .left-pane, .app-container {
@@ -1612,32 +1669,30 @@ ACTIVE CHARACTER PROFILE (for consistency):
             border-top: 1px solid var(--border-color);
             box-shadow: 0 -4px 12px rgba(0,0,0,0.25);
             height: auto;
-            max-height: 20vh; /* Do not exceed 20% of the screen height */
             overflow: visible;
         }
 
         .central-input-bar {
-            gap: 0.75rem;
-            padding: 0.75rem 1rem;
-            min-height: 68px; /* Larger input area */
+            gap: 0.65rem;
+            padding: 0.65rem 0.85rem;
+            min-height: calc(var(--mic-diameter) + 12px);
             background: #1a1a1a;
             border: 2px solid var(--border-color);
             box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-            max-height: 10vh;
         }
 
         .central-input-bar textarea {
-            min-height: 48px; /* Larger text area */
+            min-height: max(56px, calc(var(--mic-diameter) * 0.45));
+            max-height: var(--mic-diameter);
             font-size: 16px; /* Prevent zoom on iOS */
             background: #2a2a2a;
             border: 1px solid #444;
             color: #fff;
-            max-height: 7vh;
             overflow-y: auto;
         }
 
         /* Fix microphone button sizing */
-        .input-buttons button, .note-picker-btn {
+        .input-buttons button:not(.mic-button), .note-picker-btn {
             width: 48px; /* Larger touch target */
             height: 48px;
             min-width: 48px;
@@ -1650,11 +1705,16 @@ ACTIVE CHARACTER PROFILE (for consistency):
         }
         
         .input-buttons.horizontal {
-            gap: 0.75rem;
+            gap: 0.65rem;
         }
     }
 
+    @media (max-width: 768px) {
+        :root{ --mic-scale: 1.65; }
+    }
+
     @media (max-width: 480px) {
+        :root{ --mic-scale: 1.45; }
         .leeway-multitool-wrapper {
             padding: 0.25rem;
             padding-bottom: 170px;
@@ -1679,9 +1739,10 @@ ACTIVE CHARACTER PROFILE (for consistency):
         
         .central-input-bar {
             padding: 0.5rem;
+            min-height: calc(var(--mic-diameter) + 10px);
         }
         
-        .input-buttons button, .note-picker-btn {
+        .input-buttons button:not(.mic-button), .note-picker-btn {
             width: 44px;
             height: 44px;
             min-width: 44px;
@@ -1691,6 +1752,7 @@ ACTIVE CHARACTER PROFILE (for consistency):
     
     /* Galaxy Fold specific optimizations */
     @media (max-width: 344px) {
+        :root{ --mic-scale: 1.2; }
         .app-tabs {
             grid-template-columns: 1fr 1fr; /* Two columns for very narrow screens */
         }
@@ -1711,7 +1773,7 @@ ACTIVE CHARACTER PROFILE (for consistency):
             min-height: 40px;
         }
         
-        .input-buttons button, .note-picker-btn {
+        .input-buttons button:not(.mic-button), .note-picker-btn {
             width: 40px;
             height: 40px;
             min-width: 40px;
@@ -1834,6 +1896,11 @@ ACTIVE CHARACTER PROFILE (for consistency):
                         <img src={images.cameraFeed} alt="Camera toggle" />
                     </button>
                     {/* #3 search/spyglass removed intentionally */}
+                    {metricsUrl && (
+                        <div className="header-metrics">
+                            <HealthBadge metricsUrl={metricsUrl} />
+                        </div>
+                    )}
                 </div>
             </header>
 
@@ -1891,7 +1958,16 @@ ACTIVE CHARACTER PROFILE (for consistency):
                                 <button
                                     id="mic-button"
                                     onClick={(e) => handleUnifiedMicButton(e)}
-                                    onDoubleClick={() => { if (isListening) { const recognition = recognitionRef.current; if (recognition) { try { recognition.stop(); } catch(e) { console.warn('Double-click stop failed', e);} } } }}
+                                    onDoubleClick={() => {
+                                        wakeActiveRef.current = false;
+                                        sessionModeRef.current = false;
+                                        clearSilenceTimer();
+                                        const recognition = recognitionRef.current;
+                                        if (recognition) {
+                                            try { recognition.stop(); }
+                                            catch (e) { console.warn('Double-click stop failed', e); }
+                                        }
+                                    }}
                                     onContextMenu={(e) => { e.preventDefault(); openMicZoom(); }}
                                     className={`mic-button unified mac-million-mic ${isAlwaysListening ? 'always-on' : ''} ${isListening ? 'listening' : ''}`}
                                     aria-label={promptInput.trim() ? 'Send message' : (isListening ? 'Click again or double-click to send' : (isAlwaysListening ? 'Disable always-on microphone' : 'Enable push-to-talk'))}
@@ -2030,6 +2106,6 @@ const styleEl = document.getElementById('app-inline-styles-flex');
 if (!styleEl) {
     const s = document.createElement('style');
     s.id = 'app-inline-styles-flex';
-    s.textContent = `.input-buttons-flex{display:flex;align-items:center;gap:.5rem}`;
+    s.textContent = `.input-buttons-flex{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.75rem}`;
     document.head.appendChild(s);
 }

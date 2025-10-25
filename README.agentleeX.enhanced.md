@@ -9,7 +9,7 @@ ICON_SIG: CD534113
 SPDX-License-Identifier: MIT
 */
 
-# Agent Lee X.5 — Autonomous Personal Computer (APC)
+# Agent Lee X.7 — Autonomous Personal Computer (APC)
 
 ---
 
@@ -196,11 +196,45 @@ Multi-platform:
 
 GitHub Pages (CI): deploy on push to main.
 
-Cloudflare Worker proxy:
-```bash
-cd cf-proxy
-wrangler publish
-```
+### Cloudflare Worker Autonomy Stack
+
+1. Configure `cf-proxy/wrangler.toml`
+	- `ALLOW_ORIGIN` must list your GitHub Pages origin(s) and any localhost dev host.
+	- `LIGHTNING_BASE` points at your primary Lightning (OpenAI-compatible) endpoint.
+	- Optional: `FALLBACK_BASE` (secondary/CPU model), `ADMIN_WEBHOOK` (Discord/Slack).
+	- Bind a KV namespace as `STATUS_KV` and keep cron `*/2 * * * *` enabled for health polling.
+2. Inject secrets (never commit keys):
+	```powershell
+	wrangler secret put GEMINI_API_KEY
+	wrangler secret put LIGHTNING_TOKEN
+	```
+3. Tune rate/budget guard inside `cf-proxy/src/worker.ts`:
+	- `RL_MAX_PER_IP` (default 30 requests/min).
+	- `BUDGET_DAY_TOKENS` (soft cap ~100M tokens/day before auto-switching to CHEAP policy).
+4. Deploy:
+	```bash
+	cd cf-proxy
+	wrangler deploy
+	```
+
+### Frontend Runtime Config
+
+- Update `public/agentlee.config.js` with your Worker URLs:
+  - `CHAT_PROXY_URL` → `https://<your-worker-domain>/api/chat`
+  - Optional `OPS_METRICS_URL` → explicitly set metrics endpoint; if omitted, the app derives `${origin}/ops/metrics` from `CHAT_PROXY_URL`.
+  - `DEFAULT_POLICY` → `FAST`, `CHEAP`, or `LONG`.
+- The client automatically falls back to direct Gemini when `CHAT_PROXY_URL` is empty.
+
+### Health Badge & Verification
+
+- `HealthBadge` in the header polls `/ops/metrics` every 15s and shows GPU status/RTT.
+- Dev sanity check:
+  ```powershell
+  wrangler dev
+  npm run dev
+  ```
+  Ensure chat hits `http://127.0.0.1:8787/api/chat` and metrics respond with `{ ok, rtt }`.
+- Production check: visit `https://<your-worker-domain>/ops/metrics`; badge should glow green (<span style="color:#2ecc71">OK</span>) once Lightning responds.
 
 Mobile distribution:
 ```bash

@@ -9,7 +9,7 @@ ICON_SIG: CD534113
 SPDX-License-Identifier: MIT
 */
 
-# Agent Lee X.6 — Autonomous Personal Computer (APC)
+# Agent Lee X.7 — Autonomous Personal Computer (APC)
 
 A LEEWAY-compliant, production-grade AI operating system that lives inside any device. This enhanced README preserves all details from the base README while restructuring for clarity, navigation, and onboarding speed.
 

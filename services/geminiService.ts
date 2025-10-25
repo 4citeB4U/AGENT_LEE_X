@@ -484,10 +484,8 @@ export const createChat = (userName?: string): Chat => {
     // If a Worker proxy is configured, return a shim that streams via /api/chat
     try {
         const cfg: any = (typeof window !== 'undefined' && (window as any).AGENTLEE_CONFIG) ? (window as any).AGENTLEE_CONFIG : {};
-        const proxyUrl: string | undefined = cfg?.GEMINI_PROXY_URL;
+        const proxyUrl: string | undefined = cfg?.CHAT_PROXY_URL;
         if (proxyUrl) {
-            const u = new URL(proxyUrl);
-            const apiBase = `${u.protocol}//${u.host}`; // derive base from /gemini URL
             const defaultPolicy = (cfg.DEFAULT_POLICY || 'FAST').toString().toUpperCase();
             const systemInstruction = buildSystemPromptV11(userName || 'User');
 
@@ -495,7 +493,10 @@ export const createChat = (userName?: string): Chat => {
                 // Minimal method surface used by App.tsx
                 async sendMessageStream({ message }: { message: string }) : Promise<AsyncIterable<{ text?: string }>> {
                     const body = { messages: [{ role: 'system', content: systemInstruction }, { role: 'user', content: message }] };
-                    const res = await fetch(`${apiBase}/api/chat?policy=${encodeURIComponent(defaultPolicy)}`, {
+                    const endpoint = String(proxyUrl);
+                    const target = new URL(endpoint);
+                    if (!target.searchParams.has('policy')) target.searchParams.set('policy', defaultPolicy);
+                    const res = await fetch(target.toString(), {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(body),

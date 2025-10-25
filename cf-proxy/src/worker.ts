@@ -28,6 +28,45 @@ type Env = {
   STATUS_KV?: KVNamespace;
 };
 
+type Policy = 'FAST' | 'CHEAP' | 'LONG';
+
+const RL_WINDOW_S = 60;
+const RL_MAX_PER_IP = 30;
+const BUDGET_DAY_TOKENS = 100_000_000;
+
+const MODEL_BY_POLICY = (env: Env): Record<Policy, string | undefined> => ({
+  FAST: env.LIGHTNING_BASE,
+  CHEAP: env.FALLBACK_BASE || env.LIGHTNING_BASE,
+  LONG: env.LIGHTNING_BASE,
+});
+
+function dayKey(prefix: string, d = new Date()) {
+  return `${prefix}_${d.toISOString().slice(0, 10)}`;
+}
+
+async function incrKV(env: Env, key: string, delta = 1, ttl?: number) {
+  if (!env.STATUS_KV) return delta;
+  const cur = Number((await env.STATUS_KV.get(key)) || '0');
+  const val = cur + delta;
+  await env.STATUS_KV.put(key, String(val), ttl ? { expirationTtl: ttl } : undefined);
+  return val;
+}
+
+function buildCors(origin: string, env: Env) {
+  const allowCSV = env.ALLOW_ORIGIN || 'https://<your-username>.github.io';
+  const allow = allowCSV.split(',').map(s => s.trim()).filter(Boolean);
+  const matched = allow.some(o => origin.startsWith(o));
+  return {
+    headers: {
+      'Access-Control-Allow-Origin': matched ? origin : allow[0] || '*',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      Vary: 'Origin',
+    } as Record<string, string>,
+    allow,
+  };
+}
+
 export default {
   // Cron health check: update KV with GPU health + RTT
   async scheduled(_event: ScheduledEvent, env: Env) {
@@ -55,16 +94,7 @@ export default {
   async fetch(req: Request, env: Env) {
     const url = new URL(req.url);
     const origin = req.headers.get('Origin') || '';
-    const allowCSV = env.ALLOW_ORIGIN || 'https://<your-username>.github.io';
-    const allow = allowCSV.split(',').map(s => s.trim()).filter(Boolean);
-    const ok = allow.some(o => origin.startsWith(o));
-
-    const cors = {
-      'Access-Control-Allow-Origin': ok ? origin : allow[0] || '*',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-      Vary: 'Origin',
-    } as Record<string,string>;
+    const { headers: cors } = buildCors(origin, env);
 
     if (req.method === 'OPTIONS') return new Response(null, { headers: cors });
 
@@ -77,23 +107,40 @@ export default {
 
     // Policy-aware chat proxy: /api/chat -> {base}/v1/chat/completions
     if (url.pathname === '/api/chat' && req.method === 'POST') {
-      const policy = (url.searchParams.get('policy') || 'FAST').toUpperCase();
-      // Simple policy chooser; extend as needed
+      const policy = (url.searchParams.get('policy') || 'FAST').toUpperCase() as Policy;
+
+      const ip = req.headers.get('CF-Connecting-IP')
+        || req.headers.get('X-Forwarded-For')?.split(',')[0]?.trim()
+        || '0.0.0.0';
+      const windowKey = `rl_${ip}_${Math.floor(Date.now() / 1000 / RL_WINDOW_S)}`;
+      const rlHits = await incrKV(env, windowKey, 1, RL_WINDOW_S);
+      if (env.STATUS_KV && rlHits > RL_MAX_PER_IP) {
+        return new Response('Rate limit exceeded', { status: 429, headers: cors });
+      }
+
+      let approxTokensIn = 0;
+      try {
+        const raw = await req.clone().text();
+        approxTokensIn = Math.ceil(raw.length / 4);
+      } catch {}
+      const usageKey = dayKey('usage_tokens');
+      const used = await incrKV(env, usageKey, approxTokensIn, 86400);
+
       const healthy = env.STATUS_KV ? (await env.STATUS_KV.get('gpu_ok')) === '1' : true;
-      let base = env.LIGHTNING_BASE;
+      let effectivePolicy: Policy = used > BUDGET_DAY_TOKENS ? 'CHEAP' : policy;
+      const policyMap = MODEL_BY_POLICY(env);
+      let base = policyMap[effectivePolicy] || env.LIGHTNING_BASE;
       if (!healthy && env.FALLBACK_BASE) base = env.FALLBACK_BASE;
-      // Optionally map CHEAP/LONG to different bases if provided via vars
-      if (policy === 'CHEAP' && env.FALLBACK_BASE) base = env.FALLBACK_BASE;
+
       if (!base) return new Response(JSON.stringify({ error: 'No backend configured' }), { status: 500, headers: cors });
       const target = base.replace(/\/$/, '') + '/v1/chat/completions' + (url.search || '');
       const headers = new Headers(req.headers);
       headers.set('origin', new URL(base).origin);
       if (env.LIGHTNING_TOKEN) headers.set('Authorization', `Bearer ${env.LIGHTNING_TOKEN}`);
-      const r = await fetch(target, { method: 'POST', headers, body: req.body, redirect: 'follow' });
-      const h = new Headers(r.headers);
+      const upstream = await fetch(target, { method: 'POST', headers, body: req.body, redirect: 'follow' });
+      const h = new Headers(upstream.headers);
       cors['Content-Type'] = h.get('Content-Type') || 'application/json';
-      // Pass through SSE if upstream streams
-      return new Response(r.body, { status: r.status, headers: cors });
+      return new Response(upstream.body, { status: upstream.status, headers: cors });
     }
 
     // Route: /gemini (JSON body: { model, input })
