@@ -16,6 +16,7 @@ import CameraFeed, { CameraFeedHandle } from './components/CameraFeed';
 import HealthBadge from './components/HealthBadge';
 import InAppBrowser from './components/InAppBrowser';
 import LoadingSpinner from './components/LoadingSpinner';
+import MetallicBackground from './components/MetallicBackground';
 import OnboardingGuide from './components/OnboardingGuide';
 import PersistentActions from './components/PersistentActions';
 import Researcher from './components/Researcher';
@@ -248,6 +249,7 @@ const AppContent: React.FC = () => {
     // Refs for new voice interaction system
     const chatRef = useRef<Chat | null>(null);
     const recognitionRef = useRef<any>(null);
+    const recognitionActiveRef = useRef(false);
     // Refs & constants for push-to-talk session logic (single-click start)
     const sessionModeRef = useRef(false); // true while a manual (non-always) session is active
     const silenceTimeoutRef = useRef<number | null>(null);
@@ -623,10 +625,12 @@ const AppContent: React.FC = () => {
             wakeActiveRef.current = false;
             clearSilenceTimer();
             const recognition = recognitionRef.current;
-            if (recognition && agentStateRef.current === 'idle' && !isListening) {
+            if (recognition && agentStateRef.current === 'idle' && !isListening && !recognitionActiveRef.current) {
                 try {
+                    recognitionActiveRef.current = true;
                     recognition.start();
                 } catch (err) {
+                    recognitionActiveRef.current = false;
                     console.warn('Failed to start always-on listening immediately:', err);
                 }
             }
@@ -639,7 +643,7 @@ const AppContent: React.FC = () => {
         sessionModeRef.current = false;
         clearSilenceTimer();
         const recognition = recognitionRef.current;
-        if (recognition) {
+        if (recognition && recognitionActiveRef.current) {
             try {
                 recognition.stop();
             } catch (err) {
@@ -669,7 +673,7 @@ const AppContent: React.FC = () => {
 
     const startPushToTalkSession = () => {
         // Do not start if already listening (either session or always-on)
-        if (isListening || isAlwaysListeningRef.current) return;
+    if (isListening || isAlwaysListeningRef.current || recognitionActiveRef.current) return;
         const recognition = recognitionRef.current;
         if (!recognition) return;
         sessionModeRef.current = true;
@@ -677,10 +681,12 @@ const AppContent: React.FC = () => {
         try {
             lastSpeechTimeRef.current = Date.now();
             scheduleSilenceTimer();
+            recognitionActiveRef.current = true;
             recognition.start();
         } catch (e) {
             console.warn('Failed to start push-to-talk session:', e);
             sessionModeRef.current = false;
+            recognitionActiveRef.current = false;
         }
     };
 
@@ -690,7 +696,9 @@ const AppContent: React.FC = () => {
         clearSilenceTimer();
         // Stopping recognition will trigger onend handler which submits the transcript
         try {
-            recognition.stop();
+            if (recognitionActiveRef.current) {
+                recognition.stop();
+            }
         } catch (e) {
             console.warn('Failed to stop recognition cleanly:', e);
         }
@@ -1040,6 +1048,7 @@ ACTIVE CHARACTER PROFILE (for consistency):
         if (!recognition) return;
 
         recognition.onstart = () => {
+            recognitionActiveRef.current = true;
             setAgentState('listening');
             setIsListening(true);
         };
@@ -1094,6 +1103,7 @@ ACTIVE CHARACTER PROFILE (for consistency):
         };
 
         recognition.onend = () => {
+            recognitionActiveRef.current = false;
             setIsListening(false);
             // If this was a push-to-talk session, clear its state
             if (sessionModeRef.current) {
@@ -1130,6 +1140,7 @@ ACTIVE CHARACTER PROFILE (for consistency):
                  console.error("Speech Recognition Error:", event.error);
                  setError(`Speech Recognition Error: ${event.error}`);
             }
+            recognitionActiveRef.current = false;
             setIsListening(false);
             // On any error, onend will be called next, which will handle recovery.
         };
@@ -1145,13 +1156,19 @@ ACTIVE CHARACTER PROFILE (for consistency):
         // Condition to START listening:
         // 1. User has enabled "always on" mode.
         // 2. The agent is idle (not thinking or speaking).
-        if (isAlwaysListening && agentState === 'idle') {
+        if (isAlwaysListening && agentState === 'idle' && !recognitionActiveRef.current) {
             ttsService.cancel();
-            recognition.start();
+            try {
+                recognitionActiveRef.current = true;
+                recognition.start();
+            } catch (e) {
+                recognitionActiveRef.current = false;
+                console.warn('Failed to start always-on recognition loop:', e);
+            }
         } 
         // Condition to STOP listening:
         // 1. User has disabled "always on" mode.
-        else if (!isAlwaysListening) {
+        else if (!isAlwaysListening && recognitionActiveRef.current) {
             recognition.stop();
         }
     }, [isAlwaysListening, agentState]);
@@ -1320,17 +1337,20 @@ ACTIVE CHARACTER PROFILE (for consistency):
     :root { --bg-gradient: linear-gradient(135deg, #121212 0%, #000000 100%); --text-primary: #f0f0f0; --text-secondary: #D4AF37; --border-color: #D4AF37; --accent-bg: #D4AF37; --accent-text: #121212; --surface-bg: #1E1E1E; --surface-text: #E0E0E0; }
     * { box-sizing: border-box; }
     html, body, #root { margin: 0; padding: 0; width: 100%; height: 100%; }
+    body { background: #000; }
+    .metallic-background-layer { position: fixed; inset: 0; z-index: -5; pointer-events: none; }
+    .metallic-background-canvas { width: 100vw; height: 100vh; display: block; }
     body.theme-onyx-gold { --bg-gradient: linear-gradient(135deg, #121212 0%, #000000 100%); --text-primary: #f0f0f0; --text-secondary: #D4AF37; --border-color: #D4AF37; --accent-bg: #D4AF37; --accent-text: #121212; }
     body.theme-midnight { --bg-gradient: linear-gradient(135deg, #1a202c 0%, #2d3748 100%); --text-primary: #e2e8f0; --text-secondary: #63b3ed; --border-color: #4a5568; --accent-bg: #63b3ed; --accent-text: #1a202c; }
     body.theme-slate { --bg-gradient: linear-gradient(135deg, #334155 0%, #475569 100%); --text-primary: #f1f5f9; --text-secondary: #a78bfa; --border-color: #64748b; --accent-bg: #a78bfa; --accent-text: #1e293b; }
     body.theme-nebula { --bg-gradient: linear-gradient(135deg, #4c1d95 0%, #5b21b6 100%); --text-primary: #f5f3ff; --text-secondary: #f472b6; --border-color: #7c3aed; --accent-bg: #f472b6; --accent-text: #4c1d95; }
-    .leeway-multitool-wrapper { width: 100%; height: 100%; background: var(--bg-gradient); display: flex; flex-direction: row; gap: 1rem; align-items: stretch; padding: 1rem; color: var(--text-primary); font-family: 'Inter', sans-serif; overflow-x: hidden; overflow-y: auto; position: relative; }
+    .leeway-multitool-wrapper { width: 100%; height: 100%; background: transparent; display: flex; flex-direction: row; gap: 1rem; align-items: stretch; padding: 1rem; color: var(--text-primary); font-family: 'Inter', sans-serif; overflow-x: hidden; overflow-y: auto; position: relative; }
     .logo-watermark { position: absolute; top: 1rem; left: 1rem; z-index: 10; opacity: 0.55; transition: opacity 0.3s ease; pointer-events: none; }
     .logo-watermark img { width: 70px; height: 70px; object-fit: contain; filter: brightness(0.85) drop-shadow(0 0 12px rgba(212, 175, 55, 0.45)); }
     .logo-watermark:hover { opacity: 0.85; }
     .left-pane { width: 30%; flex-shrink: 0; display: flex; flex-direction: column; gap: 1rem; }
     .top-info-wrapper { flex-shrink: 0; }
-    .app-container { flex-grow: 1; background: var(--bg-gradient); border-radius: 1rem; padding: 1.5rem; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3); border: 1px solid var(--border-color); display: flex; flex-direction: column; min-height: 0; position: relative; }
+    .app-container { flex-grow: 1; background: rgba(8, 8, 8, 0.88); border-radius: 1rem; padding: 1.5rem; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3); border: 1px solid var(--border-color); display: flex; flex-direction: column; min-height: 0; position: relative; }
     .top-banner-header { 
         --banner-h: 84px;
         position: fixed;
@@ -1850,6 +1870,7 @@ ACTIVE CHARACTER PROFILE (for consistency):
 
     return (
         <React.Fragment>
+            <MetallicBackground />
             {showApiKeyPrompt && (
                 <ApiKeyPrompt onApiKeySet={handleApiKeySet} />
             )}
@@ -1963,7 +1984,7 @@ ACTIVE CHARACTER PROFILE (for consistency):
                                         sessionModeRef.current = false;
                                         clearSilenceTimer();
                                         const recognition = recognitionRef.current;
-                                        if (recognition) {
+                                        if (recognition && recognitionActiveRef.current) {
                                             try { recognition.stop(); }
                                             catch (e) { console.warn('Double-click stop failed', e); }
                                         }
