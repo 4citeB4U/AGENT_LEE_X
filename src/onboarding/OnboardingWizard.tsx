@@ -25,7 +25,8 @@ const styles = `
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 999;
+    /* Elevated above app header/footer (z-index ~1000) and other overlays */
+    z-index: 11000;
     padding: 2rem;
   }
   .onboard-card {
@@ -38,6 +39,8 @@ const styles = `
     overflow-y: auto;
     color: #f8f8f8;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.55);
+    -webkit-overflow-scrolling: touch;
+    position: relative;
   }
   .onboard-card h2,
   .onboard-card h3 {
