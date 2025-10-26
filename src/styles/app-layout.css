@@ -11,108 +11,31 @@ SPDX-License-Identifier: MIT
 
 /* Global under-glow effect */
 body::before {
-  content: '';
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: radial-gradient(
-    ellipse at center bottom,
-    rgba(212, 175, 55, 0.15) 0%,
-    rgba(212, 175, 55, 0.08) 30%,
-    rgba(212, 175, 55, 0.03) 60%,
-    transparent 80%
-  );
-  pointer-events: none;
-  z-index: -1;
-}
+  .app-tab-btn {
+    padding: 0;
+    background: none;
+    border: none;
+    border-radius: 0;
+    display: block;
+    width: 100%;
+    line-height: 0;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    min-height: 0;
+  }
 
-/* App-specific layout styles that work with the token system */
-/* These complement the component classes in tokens.css */
+  .app-tab-btn img {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: inherit;
+  }
 
-/* Mobile-First Layout for Phones */
-body {
-  margin: 0;
-  padding: 0;
-  height: 100vh;
-  overflow: hidden;
-}
-
-#root {
-  height: 100vh;
-  overflow: hidden;
-}
-
-.leeway-multitool-wrapper {
-  width: 100%;
-  height: 100vh;
-  background: var(--bg-gradient);
-  display: flex;
-  flex-direction: column;
-  color: rgb(var(--color-fg));
-  font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', sans-serif;
-  overflow: hidden;
-}
-
-/* Mobile Top Header */
-.top-section {
-  flex-shrink: 0;
-  height: 60px;
-  background: rgba(0, 0, 0, 0.95);
-  border-bottom: 2px solid rgba(212, 175, 55, 0.8);
-  z-index: 1000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 1rem;
-}
-
-.mobile-header-title {
-  color: #d4af37;
-  font-size: 1.2rem;
-  margin: 0;
-  font-weight: 600;
-}
-
-.mobile-agent-output {
-  flex: 1;
-  font-size: 0.8rem;
-  overflow: hidden;
-}
-
-.camera-feed-mobile {
-  height: 60px;
-  margin-top: 0.5rem;
-}
-
-.mobile-content-area {
-  flex: 1;
-  overflow: auto;
-  padding: 1rem;
-  background: var(--bg-gradient);
-  border-radius: 0.75rem;
-  border: 1px solid rgb(var(--color-border));
-  margin: 0.5rem 0;
-}
-
-/* Mobile Main Content - Vertical Stack */
-.middle-section {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  padding: 0.5rem;
-  padding-bottom: 180px; /* Space for bottom controls */
-  overflow-y: auto;
-  overflow-x: hidden;
-  min-height: 0;
-}
-
-/* Mobile Agent Lee Section */
-.left-pane {
-  width: 100%;
-  flex-shrink: 0;
-  display: flex;
+  .app-tab-btn:focus-visible {
+    outline: 2px solid rgba(212, 175, 55, 0.9);
+    outline-offset: 4px;
+  }
   flex-direction: row;
   gap: 0.5rem;
   margin-bottom: 0.5rem;
@@ -194,76 +117,40 @@ body {
 
 .app-tabs {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0.5rem;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 0.75rem;
   border-bottom: 1px solid rgb(var(--color-border));
   padding-bottom: 1rem;
 }
 
 .app-tab-btn {
-  padding: 0.5rem;
-  font-size: clamp(0.72rem, 0.69rem + 0.15vw, 0.80rem);
-  background: rgba(212, 175, 55, 0.1);
-  border: 1px solid rgb(var(--color-border));
-  border-radius: 0.5rem;
-  color: rgb(var(--color-secondary));
-  font-weight: 600;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: 0;
+  display: block;
+  width: 100%;
+  line-height: 0;
   cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.25rem;
-  white-space: normal;
-  text-align: center;
-  aspect-ratio: 1 / 1;
   position: relative;
   overflow: hidden;
-}
-
-.app-tab-btn:hover {
-  background: rgba(212, 175, 55, 0.3);
-  color: white;
-  transform: translateY(-10px) scale(1.15);
-  box-shadow: 
-    0 15px 40px rgba(0,0,0,0.4),
-    0 0 50px rgba(212, 175, 55, 1),
-    0 0 80px rgba(212, 175, 55, 0.8),
-    0 0 120px rgba(212, 175, 55, 0.6),
-    inset 0 0 30px rgba(212, 175, 55, 0.3);
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  z-index: 100;
-  position: relative;
-  border: 2px solid rgba(212, 175, 55, 0.8);
-}
-
-.app-tab-btn.active {
-  background: rgb(var(--color-accent));
-  color: var(--accent-text);
-  border-color: rgb(var(--color-accent));
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+  min-height: 0;
 }
 
 .app-tab-btn img {
-  position: absolute;
-  top: 0;
-  left: 0;
+  display: block;
   width: 100%;
-  height: 100%;
-  object-fit: cover;
-  z-index: 1;
-  opacity: 0.8;
+  height: auto;
+  border-radius: inherit;
 }
 
-.app-tab-btn span {
-  display: none !important; /* Hide all text labels */
-  position: relative;
-  z-index: 2;
-  text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
-  color: white;
-  font-weight: 700;
+.app-tab-btn:focus-visible {
+  outline: 2px solid rgba(212, 175, 55, 0.9);
+  outline-offset: 4px;
+}
+
+.app-tab-btn.active img {
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.6);
 }
 
 .app-content-area {
@@ -310,83 +197,41 @@ body {
   flex: 1;
 }
 
+
 .research-mode-selector button,
 .research-mode-btn {
   padding: 0;
-  background: rgba(212, 175, 55, 0.1);
-  border: 2px solid rgba(212, 175, 55, 0.4);
-  border-radius: 1rem;
+  background: none;
+  border: none;
+  border-radius: 0;
   cursor: pointer;
-  transition: all 0.3s ease;
   flex: 1;
-  min-width: 140px;
-  height: 100px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  min-width: 150px;
+  display: block;
+  width: 100%;
+  line-height: 0;
   position: relative;
   overflow: hidden;
-  color: transparent; /* Hide any text */
-  font-size: 0; /* Hide any text */
-  z-index: 10000;
-}
-
-.research-mode-selector button:hover,
-.research-mode-btn:hover {
-  transform: translateY(-12px) scale(1.15);
-  border-color: rgba(212, 175, 55, 1);
-  box-shadow: 
-    0 15px 40px rgba(0,0,0,0.6),
-    0 0 50px rgba(212, 175, 55, 1),
-    0 0 80px rgba(212, 175, 55, 0.8),
-    0 0 120px rgba(212, 175, 55, 0.6),
-    inset 0 0 25px rgba(212, 175, 55, 0.3);
-  background: rgba(212, 175, 55, 0.35);
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  z-index: 10001;
-  position: relative;
-  border-width: 3px;
-  color: white;
-}
-
-.research-mode-selector button.active,
-.research-mode-btn.active {
-  border-color: rgba(212, 175, 55, 1);
-  background: rgba(212, 175, 55, 0.3);
-  transform: scale(1.08);
-  box-shadow: 
-    0 8px 25px rgba(0,0,0,0.4),
-    0 0 30px rgba(212, 175, 55, 0.8);
-  color: white;
-  border-width: 3px;
-  z-index: 10000;
+  z-index: 1000;
 }
 
 .research-mode-selector button img,
 .research-mode-btn img {
-  width: 100% !important;
-  height: 100% !important;
-  object-fit: cover;
-  border-radius: 1rem;
-  position: absolute;
-  top: 0;
-  left: 0;
-  z-index: 1;
-  filter: brightness(1.2) contrast(1.1);
-  border: none;
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: inherit;
 }
 
-/* Hide text labels in research mode buttons */
-.research-mode-selector button span,
-.research-mode-btn span {
-  display: none !important;
+.research-mode-selector button:focus-visible,
+.research-mode-btn:focus-visible {
+  outline: 2px solid rgba(212, 175, 55, 0.9);
+  outline-offset: 4px;
 }
 
-/* Show the Mode label but not the button labels */
-.research-mode-selector > span {
-  display: inline !important;
-  color: white;
-  font-weight: 600;
+.research-mode-selector button.active img,
+.research-mode-btn.active img {
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.6);
 }
 
 /* Bottom Controls for Mobile */
@@ -400,23 +245,38 @@ body {
 
 .central-input-bar {
   display: flex;
-  gap: 0.5rem;
-  background: #111;
-  padding: 0.5rem;
-  border-radius: 0.5rem;
-  border: 1px solid rgb(var(--color-border));
-  flex-grow: 1;
-  align-items: center;
-}
-
-.central-input-bar textarea {
-  flex-grow: 1;
-  background: #222;
+.research-mode-selector button,
+.research-mode-btn {
+  padding: 0;
+  background: none;
   border: none;
-  color: white;
-  resize: none;
-  border-radius: 0.25rem;
-  padding: 0.5rem;
+  border-radius: 0;
+  cursor: pointer;
+  flex: 1;
+  min-width: 150px;
+  display: block;
+  width: 100%;
+  line-height: 0;
+  position: relative;
+  overflow: hidden;
+  z-index: 1000;
+}
+.research-mode-selector button img,
+.research-mode-btn img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: inherit;
+}
+.research-mode-selector button:focus-visible,
+.research-mode-btn:focus-visible {
+  outline: 2px solid rgba(212, 175, 55, 0.9);
+  outline-offset: 4px;
+}
+.research-mode-selector button.active img,
+.research-mode-btn.active img {
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.6);
+}
   font-size: 1rem;
 }
 
@@ -627,19 +487,11 @@ button[title*="Record"]:hover {
 
 /* Add subtle pulse effect to active states */
 .app-tab-btn.active {
-  background: rgb(var(--color-accent));
-  color: var(--accent-text);
-  border-color: rgb(var(--color-accent));
-  transform: translateY(-1px);
-  box-shadow: 
-    0 4px 8px rgba(0,0,0,0.3),
-    0 0 20px rgba(212, 175, 55, 0.5);
-  animation: subtle-pulse 2s ease-in-out infinite;
-}
-
-@keyframes subtle-pulse {
-  0%, 100% { box-shadow: 0 4px 8px rgba(0,0,0,0.3), 0 0 20px rgba(212, 175, 55, 0.5); }
-  50% { box-shadow: 0 4px 8px rgba(0,0,0,0.3), 0 0 30px rgba(212, 175, 55, 0.7); }
+  background: none;
+  color: inherit;
+  border: none;
+  transform: none;
+  box-shadow: none;
 }
 
 /* Floating Agent Lee Avatar */

@@ -171,6 +171,7 @@ const ImageCharacterStudio: React.FC = () => {
     name: string;
   }
   const [uploadedImage, setUploadedImage] = useState<UploadedImageData | null>(null);
+  const autoTriggerTimerRef = useRef<number | null>(null);
 
   // hydrate editor fields when selection changes
   useEffect(() => {
@@ -343,6 +344,37 @@ const ImageCharacterStudio: React.FC = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    const handler = (event: Event) => {
+      const detail = (event as CustomEvent<{ prompt?: string; result?: GenOut }>).detail ?? {};
+      if (typeof detail.prompt === 'string') {
+        setPrompt(detail.prompt);
+      }
+      if (autoTriggerTimerRef.current) {
+        window.clearTimeout(autoTriggerTimerRef.current);
+      }
+      autoTriggerTimerRef.current = window.setTimeout(() => {
+        autoTriggerTimerRef.current = null;
+        if (detail.result) {
+          setImageResults((prev) => [detail.result!, ...prev]);
+          setError('');
+          setLoading(false);
+        } else {
+          void createImage();
+        }
+      }, 80);
+    };
+
+    window.addEventListener('creator:image:generate', handler as EventListener);
+    return () => {
+      window.removeEventListener('creator:image:generate', handler as EventListener);
+      if (autoTriggerTimerRef.current) {
+        window.clearTimeout(autoTriggerTimerRef.current);
+        autoTriggerTimerRef.current = null;
+      }
+    };
+  }, [createImage]);
 
   // Save Character button right below the main "Create Image"
   const saveCharacterFromImage = () => {

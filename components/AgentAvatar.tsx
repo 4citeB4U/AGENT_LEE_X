@@ -27,6 +27,10 @@ const AgentAvatar: React.FC<AgentAvatarProps> = ({ agentState }) => {
     const currentStatus = statusMap[agentState];
 
     const styles = `
+        :root {
+            /* Padding inside the avatar frame to prevent decorative edges (gold ring) from clipping */
+            --avatar-safe-inset: 2.75%;
+        }
         .avatar-container {
             position: relative;
             display: block;
@@ -48,10 +52,10 @@ const AgentAvatar: React.FC<AgentAvatarProps> = ({ agentState }) => {
         }
         .avatar-image {
             position: absolute;
-            inset: 0;
-            width: 100%;
-            height: 100%;
-            object-fit: fill;
+            /* Inset the image slightly on all sides to avoid visual clipping of the gold ring */
+            inset: var(--avatar-safe-inset);
+            /* When top/bottom/left/right are set, the box fills the inset area; object-fit guards aspect */
+            object-fit: contain;
             display: block;
             transform: none;
             filter: saturate(1.08);

@@ -9,7 +9,10 @@ AGENTS: AZR, PHI3, GEMINI, QWEN, LLAMA, ECHO
 SPDX-License-Identifier: MIT
 */
 
-import React from 'react';
+import React, { useEffect } from 'react';
+import './Spotlight.css';
+
+const PADDING = 15;
 
 interface SpotlightProps {
     targetRect: DOMRect | null;
@@ -17,29 +20,36 @@ interface SpotlightProps {
 }
 
 const Spotlight: React.FC<SpotlightProps> = ({ targetRect, isActive }) => {
+    useEffect(() => {
+        const rootStyle = document.documentElement.style;
+
+        if (!isActive || !targetRect) {
+            rootStyle.removeProperty('--spotlight-top');
+            rootStyle.removeProperty('--spotlight-left');
+            rootStyle.removeProperty('--spotlight-width');
+            rootStyle.removeProperty('--spotlight-height');
+            return;
+        }
+
+        const { top, left, width, height } = targetRect;
+        rootStyle.setProperty('--spotlight-top', `${top - PADDING}px`);
+        rootStyle.setProperty('--spotlight-left', `${left - PADDING}px`);
+        rootStyle.setProperty('--spotlight-width', `${width + PADDING * 2}px`);
+        rootStyle.setProperty('--spotlight-height', `${height + PADDING * 2}px`);
+
+        return () => {
+            rootStyle.removeProperty('--spotlight-top');
+            rootStyle.removeProperty('--spotlight-left');
+            rootStyle.removeProperty('--spotlight-width');
+            rootStyle.removeProperty('--spotlight-height');
+        };
+    }, [isActive, targetRect]);
+
     if (!isActive || !targetRect) {
         return null;
     }
 
-    const padding = 15;
-    const { top, left, width, height } = targetRect;
-    
-    // This style creates a full-screen overlay with a "hole" cut out for the target element.
-    // The box-shadow is cast from the hole, effectively creating an inverse fill.
-    const spotlightStyle: React.CSSProperties = {
-        position: 'fixed',
-        top: `${top - padding}px`,
-        left: `${left - padding}px`,
-        width: `${width + padding * 2}px`,
-        height: `${height + padding * 2}px`,
-        boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.75)',
-        borderRadius: '8px',
-        zIndex: 9998,
-        pointerEvents: 'none', // Allows clicks to pass through to elements behind if needed
-        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', // Smooth transition for position changes
-    };
-
-    return <div style={spotlightStyle}></div>;
+    return <div className="spotlight-overlay" aria-hidden="true"></div>;
 };
 
 export default Spotlight;

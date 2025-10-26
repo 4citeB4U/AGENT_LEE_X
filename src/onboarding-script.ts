@@ -85,10 +85,10 @@ export const onboardingScript: TourStep[] = [
         delayAfterSpeak: 1500,
     },
     {
-        targetId: 'feature-tab-character',
+        targetId: 'feature-tab-creator',
         scrollToId: 'app-container',
-        action: { type: 'clickFeature', feature: 'character' },
-        text: "Character Studio. Craft consistent visual + narrative identity packs. Lock traits, iterate portraits, and export assets ready for deployment.",
+        action: { type: 'clickFeature', feature: 'creator' },
+        text: "Creator Studio. Craft consistent visual + narrative identity packs. Lock traits, iterate portraits, and export assets ready for deployment.",
         delayAfterSpeak: 1500,
     },
     {

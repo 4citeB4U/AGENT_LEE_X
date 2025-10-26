@@ -1,0 +1,13 @@
+/* Styles shared by the guided spotlight overlay */
+.spotlight-overlay {
+  position: fixed;
+  top: var(--spotlight-top, -9999px);
+  left: var(--spotlight-left, -9999px);
+  width: var(--spotlight-width, 0px);
+  height: var(--spotlight-height, 0px);
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.75);
+  border-radius: 8px;
+  z-index: 9998;
+  pointer-events: none;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}

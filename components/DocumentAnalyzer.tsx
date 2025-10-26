@@ -9,6 +9,7 @@ SPDX-License-Identifier: MIT
 */
 
 import React, { useCallback, useState } from 'react';
+import { STUDIOS } from '../src/config/studios';
 import { parseFile } from '../utils/fileParser';
 import ErrorMessage from './ErrorMessage';
 import LoadingSpinner from './LoadingSpinner';
@@ -31,6 +32,26 @@ interface DocumentAnalyzerProps {
     setFile: (file: File | null) => void;
     onStartNew: () => void;
 }
+
+const studioInfo = STUDIOS.dll;
+const headerStyles = `
+    .studio-header {
+        margin-bottom: 1rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .studio-header h2 {
+        font-size: 1.6rem;
+        font-weight: 700;
+        margin: 0;
+    }
+    .studio-header p {
+        margin: 0.35rem 0 0;
+        color: rgba(212, 175, 55, 0.85);
+        font-size: 0.95rem;
+        letter-spacing: 0.02em;
+    }
+`;
 
 const DocumentAnalyzer: React.FC<DocumentAnalyzerProps> = ({ result, loading, error, file, setFile, onStartNew }) => {
   const [isDragging, setIsDragging] = useState(false);
@@ -89,10 +110,15 @@ const DocumentAnalyzer: React.FC<DocumentAnalyzerProps> = ({ result, loading, er
 
   return (
     <div className="h-full flex flex-col" onDragOver={onDragOver} onDragLeave={onDragLeave} onDrop={onDrop}>
+        <style>{headerStyles}</style>
+        <div className="studio-header">
+            <h2>{studioInfo.label}</h2>
+            <p>{studioInfo.tagline}</p>
+        </div>
         {hasContent ? (
             <div className="flex-grow flex flex-col min-h-0">
                 <div className="flex-grow overflow-y-auto">
-                    {loading && <LoadingSpinner message="Analyzing document..." />}
+                    {loading && <LoadingSpinner message="Logging document..." />}
                     {error && <ErrorMessage message={error} />}
                     {result && <ResultContainer markdownContent={result} />}
                 </div>
@@ -102,7 +128,7 @@ const DocumentAnalyzer: React.FC<DocumentAnalyzerProps> = ({ result, loading, er
                             onClick={onStartNew}
                             className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 transition-colors"
                         >
-                            Analyze Another Document
+                            Log Another Document
                         </button>
                     </div>
                 )}

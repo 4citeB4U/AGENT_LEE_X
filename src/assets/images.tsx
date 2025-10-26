@@ -45,6 +45,7 @@ export const images = {
   
   // Branding
   logo: getImageUrl('logo.png'),
+  agentNameBanner: getImageUrl('agent-name.png'),
   
   // Audio and Communication
   macMillionMic: getImageUrl('Mac-Million-Mic.png'),
@@ -54,7 +55,9 @@ export const images = {
   research: getImageUrl('research.png'),
     text: getImageUrl('text.png'),
     image: getImageUrl('image.png'),
+    creator: getImageUrl('image.png'), // Alias for creator feature tabs
     analyze: getImageUrl('analyze.png'),
+    document: getImageUrl('documents.png'),
     documents: getImageUrl('documents.png'),
     call: getImageUrl('call.png'),
     email: getImageUrl('email.png'),

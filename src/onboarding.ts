@@ -68,12 +68,12 @@ export function getOnboardingSpeech(userName = 'boss'): OnboardingStep[] {
 		},
 
 		/* =========================
-			 TOOL: Character Studio (Visuals)
+			 TOOL: Creator Studio (Visuals)
 			 ========================= */
 		{
 			id: 'tool-character-head',
-			action: { type: 'clickFeature', feature: 'character' },
-			text: `🎨 Character Studio — Southside drip, investor clean. I turn personas into visuals that scroll-stomp and sell: performance creatives, promo art, thumbnails, deck slides. Consistent brand grid, legible hierarchy, and a creative brief that ties concept ↔ KPI. Presentation is profit — your look should flex and reassure at the same time.`,
+			action: { type: 'clickFeature', feature: 'creator' },
+			text: `🎨 Creator Studio — Southside drip, investor clean. I turn personas into visuals that scroll-stomp and sell: performance creatives, promo art, thumbnails, deck slides. Consistent brand grid, legible hierarchy, and a creative brief that ties concept ↔ KPI. Presentation is profit — your look should flex and reassure at the same time.`,
 			delayAfterSpeak: 1100
 		},
 

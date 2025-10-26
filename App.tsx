@@ -17,7 +17,6 @@ import HealthBadge from './components/HealthBadge';
 import InAppBrowser from './components/InAppBrowser';
 import LoadingSpinner from './components/LoadingSpinner';
 import MetallicBackground from './components/MetallicBackground';
-import OnboardingGuide from './components/OnboardingGuide';
 import PersistentActions from './components/PersistentActions';
 import Researcher from './components/Researcher';
 import TextGenerator from './components/TextGenerator';
@@ -26,11 +25,15 @@ import { NotepadContext, NotepadProvider } from './contexts/NotepadContext';
 import * as geminiService from './services/geminiService';
 // Autosave & storage layer
 import * as ttsService from './services/ttsService'; // Import TTS Service
+import { activateToolByIntent } from './src/agent/activateTool';
+import type { Intent } from './src/agent/intent';
 import { finalizeSpokenOutput } from './src/agentlee.core'; // Use unified core sanitizer
 import images from './src/assets/images';
 import FlushPuckHost from './src/components/FlushPuckHost';
 import SensorIntentBanner from './src/components/SensorIntentBanner';
+import { DEFAULT_STUDIO_ORDER, STUDIOS, type StudioKey } from './src/config/studios';
 import { useConversationAutosave } from './src/hooks/useConversationAutosave';
+import { useStudioHotkeys } from './src/hooks/useStudioHotkeys';
 import { receiptsLine } from './src/lib/agent/memoryReceipts';
 import { mapFreeformReply } from './src/lib/agent/replyMapper';
 import { emitConversationFlushed } from './src/lib/conversation/flush';
@@ -38,6 +41,7 @@ import memoryStore from './src/lib/memoryStore';
 import { Autosave, buildSnapshot } from './src/lib/storage/autosave';
 import type { SavedPayload } from './src/lib/storage/types';
 import { addTurn as memAddTurn, retrieveContext as memRetrieve, upsertNote as memUpsert, proposeNoteFromRecent } from './src/memory/memoryStore';
+import OnboardingWizard, { type OnboardingPayload } from './src/onboarding/OnboardingWizard';
 import type { AgentState, Contact, Feature, GroundingChunk, Note, NoteContent, ResearchMode, TransmissionLogEntry } from './types';
 import { parseFile } from './utils/fileParser';
 import { mdToHtml } from './utils/markdown';
@@ -60,6 +64,87 @@ const AgentNotepad = React.lazy(() => import('./components/AgentNotepad'));
 const Settings = React.lazy(() => import('./components/Settings'));
 const RecycleBinPanel = React.lazy(() => import('./components/RecycleBinPanel'));
 const CharacterStudio = React.lazy(() => import('./components/CharacterStudio'));
+const CreatorStudio = React.lazy(() => import('./components/ImageCharacterStudio'));
+
+const ONBOARDING_STORAGE_KEY = 'lee.onboard.v11';
+
+const STUDIO_FEATURE_MAP: Record<StudioKey, Feature> = {
+    writers: 'text',
+    dissect: 'analyze',
+    creator: 'creator',
+    dll: 'document',
+    outreach: 'call',
+    campaign: 'email',
+    dbl: 'notepad',
+    ta: 'settings'
+} as const;
+
+const mergePinnedOrder = (selected?: StudioKey[]): StudioKey[] => {
+    const seen = new Set<StudioKey>();
+    const normalized: StudioKey[] = [];
+    if (Array.isArray(selected)) {
+        for (const key of selected) {
+            if (STUDIOS[key as StudioKey] && !seen.has(key as StudioKey)) {
+                const typedKey = key as StudioKey;
+                seen.add(typedKey);
+                normalized.push(typedKey);
+            }
+        }
+    }
+    for (const key of DEFAULT_STUDIO_ORDER) {
+        if (!seen.has(key)) {
+            seen.add(key);
+            normalized.push(key);
+        }
+    }
+    return normalized;
+};
+
+const loadOnboardingRecord = (): OnboardingPayload | null => {
+    if (typeof window === 'undefined') return null;
+    const raw = localStorage.getItem(ONBOARDING_STORAGE_KEY);
+    if (!raw) return null;
+    try {
+        const parsed = JSON.parse(raw) as OnboardingPayload;
+        if (!parsed || typeof parsed !== 'object') return null;
+        return {
+            ts: parsed.ts || Date.now(),
+            policy: parsed.policy,
+            persona: parsed.persona,
+            consent: {
+                mic: Boolean(parsed.consent?.mic),
+                cam: Boolean(parsed.consent?.cam),
+            },
+            pinned: mergePinnedOrder(parsed.pinned)
+        };
+    } catch {
+        return null;
+    }
+};
+
+const buildIntentForFeature = (feature: Feature, payload?: Record<string, unknown>): Intent | null => {
+    const withPayload = (kind: Intent['kind']) => (payload ? { kind, payload } : { kind }) as Intent;
+    switch (feature) {
+        case 'text':
+            return withPayload('WRITE_CONTENT');
+        case 'analyze':
+            return withPayload('ANALYZE_MEDIA');
+        case 'creator':
+            return withPayload('CREATE_IMAGE');
+        case 'document':
+            return withPayload('ANALYZE_DOC');
+        case 'call':
+            return withPayload('MAKE_CALL');
+        case 'email':
+            return withPayload('SEND_EMAIL');
+        case 'notepad':
+            return withPayload('OPEN_DBL');
+        case 'settings':
+            return withPayload('OPEN_TA');
+        default:
+            return null;
+    }
+};
 
 
 // SpeechRecognition API interfaces for TypeScript
@@ -134,7 +219,9 @@ const AppContent: React.FC = () => {
     });
 
     // Onboarding & user identity
-    const [isOnboardingComplete, setIsOnboardingComplete] = useState(() => localStorage.getItem('onboardingComplete') === 'true');
+    const [onboardingRecord, setOnboardingRecord] = useState<OnboardingPayload | null>(() => loadOnboardingRecord());
+    const [showOnboarding, setShowOnboarding] = useState(() => loadOnboardingRecord() === null);
+    const isOnboardingComplete = Boolean(onboardingRecord);
     const [placeholderText, setPlaceholderText] = useState('Awaiting orders...');
     const [userName, setUserName] = useState<string | null>(() => localStorage.getItem('userName'));
     
@@ -295,17 +382,38 @@ const AppContent: React.FC = () => {
     // Voice controller ref (new local pipeline)
     const voiceControllerRef = useRef<any>(null);
     
-    const tabs: { id: Feature; label: string; icon: string; }[] = [
-        { id: 'research', label: 'Research', icon: images.tabs.research },
-        { id: 'text', label: 'Text', icon: images.tabs.text },
-        { id: 'character', label: 'Character Studio', icon: images.tabs.image },
-        { id: 'analyze', label: 'Analyze', icon: images.tabs.analyze },
-        { id: 'document', label: 'Document', icon: images.tabs.documents },
-        { id: 'call', label: 'Call', icon: images.tabs.call },
-        { id: 'email', label: 'Email', icon: images.tabs.email },
-        { id: 'notepad', label: 'Notepad', icon: images.tabs.notepad },
-        { id: 'settings', label: 'Settings', icon: images.tabs.settings },
-    ];
+    interface TabMeta {
+        id: Feature;
+        label: string;
+        short: string;
+        icon: string;
+        pinned: boolean;
+        toolKey?: StudioKey;
+    }
+
+    const studioOrder = useMemo(() => mergePinnedOrder(onboardingRecord?.pinned), [onboardingRecord]);
+
+    const studioTabs: TabMeta[] = useMemo(() => {
+        return studioOrder.map((studioKey) => {
+            const feature = STUDIO_FEATURE_MAP[studioKey];
+            const studio = STUDIOS[studioKey];
+            return {
+                id: feature,
+                label: studio.label,
+                short: studio.short,
+                icon: studio.icon,
+                pinned: Boolean(onboardingRecord?.pinned?.includes(studioKey)),
+                toolKey: studioKey,
+            };
+        });
+    }, [studioOrder, onboardingRecord]);
+
+    const tabs: TabMeta[] = useMemo(() => {
+        const baseTabs: TabMeta[] = [
+            { id: 'research', label: 'Research', short: 'Research', icon: images.tabs.research, pinned: false },
+        ];
+        return [...baseTabs, ...studioTabs];
+    }, [studioTabs]);
     
     // NEW: agent action types and parsing/execution logic
     interface AgentAction {
@@ -337,7 +445,12 @@ const AppContent: React.FC = () => {
     
     // NEW: Robust function to handle auto image generation
     const handleAutoImageGeneration = async (prompt: string) => {
-    setActiveFeature('character');
+        const intent = buildIntentForFeature('creator', { prompt });
+        if (intent) {
+            await activateToolByIntent(intent);
+        } else {
+            setActiveFeature('creator');
+        }
         setPromptInput(prompt); // Set prompt for UI consistency
         setLoading(true);
         setError('');
@@ -357,8 +470,14 @@ const AppContent: React.FC = () => {
                     localStorage.setItem('agentlee:lastImage', JSON.stringify({ prompt, at: Date.now() }));
                     localStorage.setItem('agentlee:lastImageUrl', imageUrl);
                 } catch {}
-                snapshotResult('character');
+                snapshotResult('creator');
 
+
+            try {
+                window.dispatchEvent(new CustomEvent('creator:image:generate', { detail: { prompt, result: imageResult } }));
+            } catch (dispatchError) {
+                console.warn('Failed to dispatch creator:image:generate event:', dispatchError);
+            }
     // Restore any previous snapshot on mount & attach network listener
     useEffect(() => {
         Autosave.attachNetworkListener();
@@ -401,13 +520,13 @@ const AppContent: React.FC = () => {
     };
 
 
-    const executeAgentAction = (action: AgentAction) => {
+    const executeAgentAction = async (action: AgentAction) => {
         console.log("Executing agent action:", action);
         switch(action.name) {
             case 'image.generate': {
                 if (action.params.prompt) {
                     appendToLog('SYSTEM', `[System: (tool) Generating image: "${action.params.prompt}"]`);
-                    handleAutoImageGeneration(action.params.prompt);
+                    await handleAutoImageGeneration(action.params.prompt);
                 } else {
                     appendToLog('SYSTEM', 'image.generate requires a prompt');
                 }
@@ -471,14 +590,18 @@ const AppContent: React.FC = () => {
             case 'navigate': {
                 const requestedTab = action.params.tab as Feature | 'image' | undefined;
                 if (requestedTab) {
-                    const resolvedTab: Feature = requestedTab === 'image' ? 'character' : requestedTab;
-                    if (tabs.some(t => t.id === resolvedTab)) {
+                    const resolvedTab: Feature = requestedTab === 'image' ? 'creator' : requestedTab;
+                    const intentPayload = action.params.followUpPrompt ? { prompt: action.params.followUpPrompt } : undefined;
+                    const intent = buildIntentForFeature(resolvedTab, intentPayload);
+                    if (intent) {
+                        await activateToolByIntent(intent);
+                    } else if (tabs.some(t => t.id === resolvedTab)) {
                         handleTabClick(resolvedTab);
-                        appendToLog('SYSTEM', `[System: Agent Lee is navigating to the ${resolvedTab} tab.]`);
-                        if (action.params.followUpPrompt) {
-                            setPromptInput(action.params.followUpPrompt);
-                            setIsAutoSubmitting(true); // Trigger auto-submission
-                        }
+                    }
+                    appendToLog('SYSTEM', `[System: Agent Lee is navigating to the ${resolvedTab} tab.]`);
+                    if (action.params.followUpPrompt) {
+                        setPromptInput(action.params.followUpPrompt);
+                        setIsAutoSubmitting(true); // Trigger auto-submission
                     }
                 }
                 break;
@@ -486,7 +609,7 @@ const AppContent: React.FC = () => {
             case 'generate_image':
                 if (action.params.prompt) {
                     appendToLog('SYSTEM', `[System: Agent Lee is generating an image with prompt: "${action.params.prompt}"]`);
-                    handleAutoImageGeneration(action.params.prompt);
+                    await handleAutoImageGeneration(action.params.prompt);
                 }
                 break;
             case 'initiate_call': {
@@ -511,6 +634,10 @@ const AppContent: React.FC = () => {
                 }
 
                 appendToLog('SYSTEM', `[System: ${script}]`);
+                const callIntent = buildIntentForFeature('call', targetNumber ? { phone: targetNumber } : undefined);
+                if (callIntent) {
+                    await activateToolByIntent(callIntent);
+                }
                 setAgentState('speaking');
                 ttsService.speak(finalizeSpokenOutput(script), () => {}, () => {
                     if (targetNumber) {
@@ -579,6 +706,36 @@ const AppContent: React.FC = () => {
         });
     };
 
+    const toggleCameraSlot = useCallback(() => {
+        setPos2CameraOn(prev => {
+            if (prev) {
+                return false;
+            }
+            if (!onboardingRecord?.consent?.cam) {
+                setCameraError('Camera consent not granted. Update access inside Toning & Adjustments.');
+                appendToLog('SYSTEM', '[System: Camera activation blocked until you allow camera access in Toning & Adjustments.]');
+                return prev;
+            }
+            setCameraError(null);
+            return true;
+        });
+    }, [appendToLog, onboardingRecord]);
+
+    useEffect(() => {
+        if (!onboardingRecord) {
+            setPlaceholderText('Awaiting orders...');
+            return;
+        }
+        setPlaceholderText(`Agent Lee · ${onboardingRecord.persona} persona ready.`);
+        if (!onboardingRecord.consent?.mic && isAlwaysListeningRef.current) {
+            setIsAlwaysListening(false);
+        }
+        if (!onboardingRecord.consent?.cam) {
+            setPos2CameraOn(false);
+            setShowCameraFeed(false);
+        }
+    }, [onboardingRecord]);
+
     // Handle API key setting from user input
     const handleApiKeySet = (apiKey: string) => {
         try {
@@ -617,6 +774,11 @@ const AppContent: React.FC = () => {
             return;
         }
         if (!isOnboardingComplete) return;
+
+        if (!isAlwaysListeningRef.current && !(onboardingRecord?.consent?.mic)) {
+            appendToLog('SYSTEM', '[System: Microphone activation blocked until you allow mic access in Toning & Adjustments.]');
+            return;
+        }
 
         if (!isAlwaysListeningRef.current) {
             setIsAlwaysListening(true);
@@ -672,6 +834,10 @@ const AppContent: React.FC = () => {
     };
 
     const startPushToTalkSession = () => {
+        if (!onboardingRecord?.consent?.mic) {
+            appendToLog('SYSTEM', '[System: Push-to-talk blocked until you allow microphone access in Toning & Adjustments.]');
+            return;
+        }
         // Do not start if already listening (either session or always-on)
     if (isListening || isAlwaysListeningRef.current || recognitionActiveRef.current) return;
         const recognition = recognitionRef.current;
@@ -903,7 +1069,11 @@ ACTIVE CHARACTER PROFILE (for consistency):
                     setAgentState('idle'); 
                     // Step 6: Execute actions after speech is complete
                     if (actions.length > 0) {
-                        actions.forEach(executeAgentAction);
+                        void (async () => {
+                            for (const action of actions) {
+                                await executeAgentAction(action);
+                            }
+                        })();
                     }
                 }
             );
@@ -1199,10 +1369,15 @@ ACTIVE CHARACTER PROFILE (for consistency):
              targetFeature = 'research';
         } else if (note.content.type === 'image') {
             setPromptInput(note.content.prompt);
-            targetFeature = 'character';
+            targetFeature = 'creator';
         }
-        
+
         setActiveFeature(targetFeature);
+        const payload = note.content.type === 'image' ? { prompt: note.content.prompt } : undefined;
+        const intent = buildIntentForFeature(targetFeature, payload);
+        if (intent) {
+            void activateToolByIntent(intent);
+        }
         setIsNotePickerOpen(false); 
         
         const input = document.getElementById('central-prompt-input');
@@ -1256,7 +1431,7 @@ ACTIVE CHARACTER PROFILE (for consistency):
                     throw new Error("This note type cannot be analyzed.");
                 }
             } else {
-                if (activeFeature === 'character' && currentResultData.imageUrl) {
+                if (['character', 'creator'].includes(activeFeature) && currentResultData.imageUrl) {
                     analysis = await geminiService.analyzeImageFromUrl("Describe this image in detail. Provide context and identify key objects.", currentResultData.imageUrl);
                 } else if (currentResultData.text) {
                     analysis = await geminiService.analyzeNote(currentResultData.text);
@@ -1276,6 +1451,15 @@ ACTIVE CHARACTER PROFILE (for consistency):
     const handleTabClick = useCallback((feature: Feature) => {
         setActiveFeature(feature);
     }, []);
+
+    useStudioHotkeys((feature: Feature) => {
+        if (!isOnboardingComplete) return;
+        const intent = buildIntentForFeature(feature);
+        if (intent) {
+            return activateToolByIntent(intent);
+        }
+        handleTabClick(feature);
+    });
 
     const researchModes: { id: ResearchMode; label: string; icon: string; }[] = [
         { id: 'general', label: 'General', icon: images.icons.general },
@@ -1350,7 +1534,7 @@ ACTIVE CHARACTER PROFILE (for consistency):
     .logo-watermark:hover { opacity: 0.85; }
     .left-pane { width: 30%; flex-shrink: 0; display: flex; flex-direction: column; gap: 1rem; }
     .top-info-wrapper { flex-shrink: 0; }
-    .app-container { flex-grow: 1; background: rgba(8, 8, 8, 0.88); border-radius: 1rem; padding: 1.5rem; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3); border: 1px solid var(--border-color); display: flex; flex-direction: column; min-height: 0; position: relative; }
+    .app-container { flex-grow: 1; background: rgba(10, 10, 10, 0.26); border-radius: 1rem; padding: 1.5rem; box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18); border: 1px solid rgba(212, 175, 55, 0.2); display: flex; flex-direction: column; min-height: 0; position: relative; backdrop-filter: blur(6px); }
     .top-banner-header { 
         --banner-h: 84px;
         position: fixed;
@@ -1407,29 +1591,38 @@ ACTIVE CHARACTER PROFILE (for consistency):
         overflow-y: auto;
     }
     .branding {
-        text-align: center;
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: calc(var(--banner-h) - 10px);
+        padding: 0.35rem 1.5rem;
+        overflow: hidden;
+        transition: filter 0.4s ease;
     }
-    .branding h1 {
-        font-size: 1.8rem;
-        font-weight: 700;
-        margin: 0;
-        line-height: 1.1;
-        transition: color 0.3s ease;
-    }
-    .branding h1.agent-online {
-        color: #39FF14;
-        text-shadow: 0 0 10px rgba(57, 255, 20, 0.5);
-    }
-    .branding h1.agent-offline {
-        color: #ffffff;
-    }
-    .branding .tagline { 
-        color: #cccccc; 
-        font-size: 0.9rem; 
-        font-weight: 400; 
+    .branding img {
         display: block;
-        margin-top: 4px;
-        letter-spacing: 0.5px;
+        height: 100%;
+        width: auto;
+        object-fit: contain;
+    }
+    .branding::before {
+        content: '';
+        position: absolute;
+        inset: 0.2rem 0.75rem;
+        border-radius: 999px;
+        background: radial-gradient(circle, rgba(72, 255, 182, 0.45) 0%, rgba(72, 255, 182, 0.15) 40%, rgba(0, 0, 0, 0) 72%);
+        opacity: 0;
+        transform: scale(0.85);
+        transition: opacity 0.45s ease, transform 0.45s ease;
+        pointer-events: none;
+    }
+    .branding.branding-online::before {
+        opacity: 1;
+        transform: scale(1);
+    }
+    .branding.branding-online {
+        filter: drop-shadow(0 0 18px rgba(72, 255, 182, 0.45));
     }
     .header-right {
         display: flex;
@@ -1526,35 +1719,29 @@ ACTIVE CHARACTER PROFILE (for consistency):
         object-fit: contain !important;
         filter: brightness(1.1) drop-shadow(0 0 8px rgba(212, 175, 55, 0.5)) !important;
     }
-    .app-tabs-container { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1rem; }
-    .app-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; }
-    .app-tab-btn { padding: 0; border: none; border-radius: 0.75rem; cursor: pointer; transition: transform 0.2s ease, box-shadow 0.2s ease; position: relative; overflow: hidden; aspect-ratio: 1 / 1; display: flex; }
-    .app-tab-btn img { width: 100%; height: 100%; object-fit: cover; display: block; border-radius: inherit; }
-    .app-tab-btn::after { content: ""; position: absolute; inset: 0; border-radius: inherit; border: 3px solid transparent; transition: border-color 0.2s ease, box-shadow 0.2s ease; pointer-events: none; }
-    .app-tab-btn:hover { transform: translateY(-2px); }
-    .app-tab-btn:hover::after { border-color: rgba(212, 175, 55, 0.5); box-shadow: 0 8px 16px rgba(0,0,0,0.35); }
-    .app-tab-btn.active { transform: translateY(-2px) scale(1.01); }
-    .app-tab-btn.active::after { border-color: var(--accent-bg); box-shadow: 0 10px 20px rgba(212, 175, 55, 0.35); }
-    .app-tab-btn:focus-visible { outline: 3px solid var(--accent-bg); outline-offset: 4px; }
-    .app-content-area { border-radius: 0.5rem; flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; }
-    .app-content-area:not(.no-surface) { background: var(--surface-bg); color: var(--surface-text); padding: 1.5rem; }
-    .research-mode-selector { display: flex; gap: 0.75rem; padding-bottom: 1rem; }
-    .research-mode-btn { border: none; padding: 0; width: 64px; height: 64px; border-radius: 0.5rem; cursor: pointer; position: relative; overflow: hidden; transition: transform 0.2s ease; display: flex; }
-    .research-mode-btn img { width: 100%; height: 100%; object-fit: cover; display: block; border-radius: inherit; }
+    .app-tabs-container { display: flex; flex-direction: column; gap: 0.35rem; margin-bottom: 0.75rem; padding: 0.25rem 0; background: transparent; border-radius: 0.9rem; border: none; box-shadow: none; backdrop-filter: none; }
+    .app-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.4rem; border-bottom: none; padding-bottom: 0.35rem; }
+    .app-tab-btn { padding: 0.35rem; border: 0; border-radius: 0; cursor: pointer; position: relative; display: flex; overflow: hidden; background: none; width: 100%; line-height: 0; aspect-ratio: 1 / 1; align-items: center; justify-content: center; }
+    .app-tab-btn img { width: 100%; height: 100%; display: block; border-radius: inherit; object-fit: contain; }
+    .app-tab-btn.active img { box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.6); }
+    .app-tab-btn:focus-visible { outline: 2px solid rgba(212, 175, 55, 0.9); outline-offset: 4px; }
+    .app-content-area { border-radius: 0.75rem; flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; backdrop-filter: blur(4px); }
+    .app-content-area:not(.no-surface) { background: rgba(15, 15, 15, 0.26); color: var(--surface-text); padding: 1.5rem; border: 1px solid rgba(212, 175, 55, 0.18); box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.3); }
+    .research-mode-selector { display: flex; align-items: center; gap: 0.5rem; padding-bottom: 0.85rem; justify-content: flex-start; flex-wrap: nowrap; overflow-x: auto; }
+    .research-mode-btn { border: 0; padding: 0; cursor: pointer; position: relative; overflow: hidden; display: flex; background: none; line-height: 0; border-radius: 10px; align-items: center; justify-content: center; flex: 0 0 auto; width: 84px; height: 84px; }
+    .research-mode-btn img { display: block; width: 100%; height: 100%; border-radius: inherit; object-fit: contain; }
     .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); border: 0; white-space: nowrap; }
-    .research-mode-btn::after { content: ""; position: absolute; inset: 0; border-radius: inherit; border: 2px solid transparent; transition: border-color 0.2s ease, box-shadow 0.2s ease; pointer-events: none; }
-    .research-mode-btn:hover { transform: translateY(-1px); }
-    .research-mode-btn:hover::after { border-color: rgba(212, 175, 55, 0.5); box-shadow: 0 6px 12px rgba(0,0,0,0.25); }
-    .research-mode-btn.active::after { border-color: var(--accent-bg); box-shadow: 0 8px 16px rgba(212, 175, 55, 0.35); }
-    .research-mode-btn:focus-visible { outline: 2px solid var(--accent-bg); outline-offset: 3px; }
+    .research-mode-btn::after { content: none; }
+    .research-mode-btn.active img { box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.6); }
+    .research-mode-btn:focus-visible { outline: 2px solid rgba(212, 175, 55, 0.9); outline-offset: 4px; }
     .is-hidden{ display:none !important; }
     :root{ --rail-h: 64px; --rail-radius: 12px; --mic-scale: 6.5; --mic-diameter: calc(var(--rail-h) * var(--mic-scale)); }
     @media (max-width: 1400px) { :root{ --mic-scale: 5.4; } }
     @media (max-width: 1200px) { :root{ --mic-scale: 4.2; } }
     .bottom-controls-wrapper { display: flex; flex-direction: column; gap: 0.75rem; margin-top: auto; flex-shrink: 0; }
     /* Gold rail container */
-    .central-input-bar{ display:grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items:center; gap:.75rem; padding:.75rem 1rem; background:#1a1a1a; border:1px solid var(--border-color); border-radius: var(--rail-radius); min-height: calc(var(--mic-diameter) + 16px); }
-    .central-input-bar textarea { width:100%; min-height: max(var(--rail-h), calc(var(--mic-diameter) * 0.55)); max-height: var(--mic-diameter); background:#222; color:#f9fafb; border: 1px solid var(--border-color); border-radius:10px; padding:.6rem .9rem; font-size: 1rem; resize: none; line-height: 1.45; }
+    .central-input-bar{ display:grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items:center; gap:.75rem; padding:.75rem 1rem; background:rgba(16,16,16,0.46); border:1px solid rgba(212, 175, 55, 0.25); border-radius: var(--rail-radius); min-height: calc(var(--mic-diameter) + 16px); box-shadow: 0 12px 26px rgba(0,0,0,0.28); backdrop-filter: blur(6px); }
+    .central-input-bar textarea { width:100%; min-height: max(var(--rail-h), calc(var(--mic-diameter) * 0.55)); max-height: var(--mic-diameter); background:rgba(34,34,34,0.5); color:#f9fafb; border: 1px solid rgba(212, 175, 55, 0.22); border-radius:10px; padding:.6rem .9rem; font-size: 1rem; resize: none; line-height: 1.45; backdrop-filter: blur(4px); }
     .central-input-bar textarea::placeholder { color: #d4af37a0; }
     .central-input-bar textarea:focus { outline: none; box-shadow: 0 0 0 2px var(--border-color); }
     .input-buttons { display: contents; }
@@ -1653,25 +1840,35 @@ ACTIVE CHARACTER PROFILE (for consistency):
 
         /* Improve tool interaction */
         .research-mode-selector {
-            flex-wrap: wrap;
-            justify-content: center;
-            padding-bottom: 0.5rem;
-            gap: 1rem;
+            gap: 0.5rem;
+        }
+
+        .research-mode-btn {
+            width: 84px;
+            height: 84px;
         }
         
-        .research-mode-btn {
-            width: 72px; /* Larger for better touch targets */
-            height: 72px;
-            min-width: 72px;
+        .research-mode-btn img {
+            width: 100%;
+            height: 100%;
         }
         
         .app-tabs {
             grid-template-columns: repeat(3, 1fr);
-            gap: 1rem; /* More space between tabs */
+            gap: 0.75rem;
         }
         
         .app-tab-btn {
-            min-height: 80px; /* Better touch targets */
+            min-height: 0;
+            aspect-ratio: 1 / 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.3rem;
+        }
+        .app-tab-btn img {
+            width: 100%;
+            height: 100%;
         }
         
         /* Fix bottom controls and input */
@@ -1681,13 +1878,13 @@ ACTIVE CHARACTER PROFILE (for consistency):
             left: 0;
             right: 0;
             z-index: 1000;
-            background: linear-gradient(to top, #000 0%, #000 80%, rgba(0,0,0,0.95) 90%, rgba(0,0,0,0.8) 100%);
+            background: linear-gradient(to top, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.65) 65%, rgba(0,0,0,0.2) 100%);
             padding: 0.75rem 1rem 0.75rem 1rem;
             padding-left: calc(1rem + env(safe-area-inset-left, 0rem));
             padding-right: calc(1rem + env(safe-area-inset-right, 0rem));
             padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0rem));
-            border-top: 1px solid var(--border-color);
-            box-shadow: 0 -4px 12px rgba(0,0,0,0.25);
+            border-top: 1px solid rgba(212, 175, 55, 0.22);
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.18);
             height: auto;
             overflow: visible;
         }
@@ -1696,19 +1893,21 @@ ACTIVE CHARACTER PROFILE (for consistency):
             gap: 0.65rem;
             padding: 0.65rem 0.85rem;
             min-height: calc(var(--mic-diameter) + 12px);
-            background: #1a1a1a;
-            border: 2px solid var(--border-color);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            background: rgba(16,16,16,0.46);
+            border: 1px solid rgba(212, 175, 55, 0.25);
+            box-shadow: 0 10px 24px rgba(0,0,0,0.3);
+            backdrop-filter: blur(6px);
         }
 
         .central-input-bar textarea {
             min-height: max(56px, calc(var(--mic-diameter) * 0.45));
             max-height: var(--mic-diameter);
             font-size: 16px; /* Prevent zoom on iOS */
-            background: #2a2a2a;
-            border: 1px solid #444;
+            background: rgba(34,34,34,0.52);
+            border: 1px solid rgba(212, 175, 55, 0.22);
             color: #fff;
             overflow-y: auto;
+            backdrop-filter: blur(4px);
         }
 
         /* Fix microphone button sizing */
@@ -1752,9 +1951,13 @@ ACTIVE CHARACTER PROFILE (for consistency):
         
         /* Smaller screens adjustments */
         .research-mode-btn {
-            width: 64px;
-            height: 64px;
-            min-width: 64px;
+            width: 76px;
+            height: 76px;
+        }
+        
+        .research-mode-btn img {
+            width: 100%;
+            height: 100%;
         }
         
         .central-input-bar {
@@ -1778,14 +1981,18 @@ ACTIVE CHARACTER PROFILE (for consistency):
         }
         
         .research-mode-selector {
-            flex-wrap: wrap;
-            gap: 0.5rem;
+            flex-wrap: nowrap;
+            gap: 0.4rem;
+        }
+
+        .research-mode-btn {
+            width: 68px;
+            height: 68px;
         }
         
-        .research-mode-btn {
-            width: 56px;
-            height: 56px;
-            min-width: 56px;
+        .research-mode-btn img {
+            width: 100%;
+            height: 100%;
         }
         
         .central-input-bar textarea {
@@ -1826,6 +2033,8 @@ ACTIVE CHARACTER PROFILE (for consistency):
         switch (activeFeature) {
           case 'text':
             return <TextGenerator result={results.text} loading={loading} error={error} systemInstruction={systemInstruction} setSystemInstruction={setSystemInstruction} />;
+                    case 'creator':
+                        return <CreatorStudio />;
                     case 'character':
                         return (
                             <CharacterStudio
@@ -1857,16 +2066,22 @@ ACTIVE CHARACTER PROFILE (for consistency):
     const isPromptEmpty = !promptInput.trim();
     const isSubmitDisabled = loading || isPromptEmpty;
 
-    const handleOnboardingComplete = useCallback(() => {
-        setIsOnboardingComplete(true);
+    const handleOnboardingComplete = useCallback((record?: OnboardingPayload | null) => {
+        const updated = record ?? loadOnboardingRecord();
+        if (updated) {
+            setOnboardingRecord(updated);
+            setPlaceholderText(`Agent Lee · ${updated.persona} persona ready.`);
+            if (!updated.consent?.mic) {
+                setIsAlwaysListening(false);
+            }
+            if (!updated.consent?.cam) {
+                setPos2CameraOn(false);
+                setShowCameraFeed(false);
+            }
+        }
+        setShowOnboarding(false);
         localStorage.setItem('onboardingComplete', 'true');
-    }, []);
-
-    const handleNameSet = (name: string) => {
-        const capitalizedName = name.charAt(0).toUpperCase() + name.slice(1);
-        setUserName(capitalizedName);
-        localStorage.setItem('userName', capitalizedName);
-    };
+    }, [setPlaceholderText, setShowOnboarding]);
 
     return (
         <React.Fragment>
@@ -1874,12 +2089,8 @@ ACTIVE CHARACTER PROFILE (for consistency):
             {showApiKeyPrompt && (
                 <ApiKeyPrompt onApiKeySet={handleApiKeySet} />
             )}
-            {!isOnboardingComplete && (
-                <OnboardingGuide
-                    onComplete={handleOnboardingComplete}
-                    onTabClick={handleTabClick}
-                    onNameSet={handleNameSet}
-                />
+            {showOnboarding && (
+                <OnboardingWizard onDone={handleOnboardingComplete} />
             )}
             {browserUrl && <InAppBrowser url={browserUrl} onClose={() => setBrowserUrl(null)} />}
             {/* Top Level Header (never hides) */}
@@ -1890,9 +2101,11 @@ ACTIVE CHARACTER PROFILE (for consistency):
                     </div>
                 </div>
                 <div className="header-center">
-                    <div className="branding">
-                        <h1 className={agentState === 'idle' ? 'agent-offline' : 'agent-online'}>Agent Lee</h1>
-                        <span className="tagline">Autonomous Personal Computer</span>
+                    <div className={`branding ${agentState === 'idle' ? '' : 'branding-online'}`}>
+                        <img
+                            src={images.agentNameBanner}
+                            alt="Agent Lee — Autonomous Personal Computer"
+                        />
                     </div>
                 </div>
                 <div className="header-right">
@@ -1912,7 +2125,7 @@ ACTIVE CHARACTER PROFILE (for consistency):
                         className="image-btn"
                         {...(pos2CameraOn ? { 'aria-pressed': 'true' } : {})}
                         title="Show camera in input"
-                        onClick={() => setPos2CameraOn(v => !v)}
+                        onClick={toggleCameraSlot}
                     >
                         <img src={images.cameraFeed} alt="Camera toggle" />
                     </button>
@@ -2039,12 +2252,14 @@ ACTIVE CHARACTER PROFILE (for consistency):
                                         key={tab.id}
                                         type="button"
                                         onClick={() => handleTabClick(tab.id as Feature)}
-                                        className={`app-tab-btn ${isActive ? 'active' : ''}`}
+                                        className={`app-tab-btn ${isActive ? 'active' : ''} ${tab.pinned ? 'pinned' : ''}`}
                                         role="tab"
                                         {...(isActive ? { 'aria-selected': 'true' } : {})}
                                         aria-controls={`feature-panel-${tab.id}`}
                                         id={`feature-tab-${tab.id}`}
                                         aria-label={tab.label}
+                                        title={tab.label}
+                                        data-tool={tab.toolKey ?? undefined}
                                     >
                                         <img src={tab.icon} alt="" aria-hidden="true" draggable={false} />
                                     </button>
@@ -2055,13 +2270,29 @@ ACTIVE CHARACTER PROFILE (for consistency):
                            <div className="research-mode-selector" role="group" aria-label="Research modes">
                                {researchModes.map(({ id, label, icon }) => {
                                    const isActiveMode = researchMode === id;
+
+                                   if (isActiveMode) {
+                                       return (
+                                           <button
+                                               key={id}
+                                               type="button"
+                                               onClick={() => setResearchMode(id)}
+                                               className="research-mode-btn active"
+                                               aria-pressed="true"
+                                               aria-label={label}
+                                           >
+                                               <img src={icon} alt="" aria-hidden="true" draggable={false} />
+                                           </button>
+                                       );
+                                   }
+
                                    return (
                                        <button
                                            key={id}
                                            type="button"
                                            onClick={() => setResearchMode(id)}
-                                           className={`research-mode-btn ${isActiveMode ? 'active' : ''}`}
-                                           {...(isActiveMode ? { 'aria-pressed': 'true' } : {})}
+                                           className="research-mode-btn"
+                                           aria-pressed="false"
                                            aria-label={label}
                                        >
                                            <img src={icon} alt="" aria-hidden="true" draggable={false} />
@@ -2072,13 +2303,13 @@ ACTIVE CHARACTER PROFILE (for consistency):
                         )}
                     </div>
                     
-                    {['text', 'character'].includes(activeFeature) && <CharacterSelector />}
+                    {['text', 'character', 'creator'].includes(activeFeature) && <CharacterSelector />}
 
                     <main 
                         id={`feature-panel-${activeFeature}`}
                         role="tabpanel"
                         aria-labelledby={`feature-tab-${activeFeature}`}
-                        className={`app-content-area ${['notepad', 'call', 'email', 'settings', 'character'].includes(activeFeature) ? 'no-surface' : ''}`}>
+                        className={`app-content-area ${['notepad', 'call', 'email', 'settings', 'character', 'creator'].includes(activeFeature) ? 'no-surface' : ''}`}>
                          <Suspense fallback={<LoadingSpinner message={`Loading ${activeFeature} module...`} />}>
                             {renderFeature()}
                         </Suspense>

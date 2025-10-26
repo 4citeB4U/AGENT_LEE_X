@@ -19,7 +19,7 @@ AGENTS: AZR, PHI3, GEMINI, QWEN, LLAMA, ECHO
 SPDX-License-Identifier: MIT
 */
 
-export type Feature = "research" | "text" | "analyze" | "document" | "call" | "email" | "notepad" | "settings" | "character"; // tasks removed from tabs; keep union stable if not previously included
+export type Feature = "research" | "text" | "analyze" | "creator" | "document" | "call" | "email" | "notepad" | "settings" | "character"; // tasks removed from tabs; keep union stable if not previously included
 
 export type Role = "user" | "model";
 
