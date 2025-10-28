@@ -5,15 +5,23 @@ compatibility_date = "2024-09-01"
 # Non-sensitive defaults; override in Cloudflare dashboard or with `--var` at deploy
 [vars]
 # Comma-separated list of allowed Origins for CORS
-ALLOW_ORIGIN = "https://<your-username>.github.io, https://<your-username>.github.io/<your-repo>"
+ALLOW_ORIGIN = "https://<your-username>.github.io, https://<your-username>.github.io/<your-repo>, https://*.github.io, https://*.vercel.app, https://*.pages.dev"
 # Base URL of your Lightning (vLLM/service) endpoint, e.g. https://<studio-domain>:8000
 LIGHTNING_BASE = ""
 FALLBACK_BASE = "" # optional: second Studio or CPU model
 ADMIN_WEBHOOK = "" # optional: Discord/Slack webhook
+LOCAL_ONLY = "false" # optional: when true, blocks remote LLM egress on the worker
+
+# Optional multi-cloud and provider vars (define where applicable)
+VERCEL_HOOK = ""
+FLY_HOOK = ""
+CF_API_TOKEN = ""
+CF_ACCOUNT_ID = ""
 
 # NOTE: Set secrets via `wrangler secret put <NAME>` in your environment, do not commit them:
 # - GEMINI_API_KEY
 # - LIGHTNING_TOKEN
+# - OPENAI_API_KEY
 
 [triggers]
 crons = ["*/2 * * * *"]

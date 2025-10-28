@@ -69,3 +69,22 @@ The deployed site will include:
 ## 🎉 **Status: READY TO DEPLOY!**
 
 All code is pushed, all configurations are in place. Just add the repository secrets and trigger the deployment workflow!
+
+---
+
+## 🔍 Validation & Diagnostics (Additive)
+
+- After deploy or on local dev, open the Models Diagnostics page for a go/no-go check:
+	- `#/diagnostics/models` — verifies optional browser modules, `@xenova/transformers`, WebGPU/WASM, and local LLM pings.
+	- Includes Hard Reload and a runtime Local-only toggle.
+- Docs: `docs/DIAGNOSTICS.md`
+
+## ⚡ Worker Proxy Reference
+
+- Edge proxy endpoints exposed by the Cloudflare Worker:
+	- `POST /api/chat?policy=FAST|CHEAP|LONG`
+	- `POST /gemini`
+	- `ANY /lightning/*`
+	- `GET /ops/metrics`
+- Configure CORS and backends via `cf-proxy/wrangler.toml`, and set secrets with `wrangler secret put`.
+- Docs: `cf-proxy/README.md`

@@ -17,6 +17,12 @@ export default defineConfig(({ mode }) => {
     const isDev = mode === 'development'
     return {
       plugins: [react()],
+      // Pin dev server to loopback and a stable port to avoid firewall prompts and port churn
+      server: {
+        host: '127.0.0.1',
+        port: 5175,
+        strictPort: true
+      },
       // Use root base in dev to avoid 404s when opening http://localhost:5173/
       // Keep GitHub Pages base in build/preview
       base: isDev ? '/' : '/AGENT_LEE_X/',

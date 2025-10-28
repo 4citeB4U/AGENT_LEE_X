@@ -17,16 +17,20 @@ import HealthBadge from './components/HealthBadge';
 import InAppBrowser from './components/InAppBrowser';
 import LoadingSpinner from './components/LoadingSpinner';
 import MetallicBackground from './components/MetallicBackground';
+import OfflineBanner from './components/OfflineBanner';
 import PersistentActions from './components/PersistentActions';
 import Researcher from './components/Researcher';
 import TextGenerator from './components/TextGenerator';
 import { CharacterContext, CharacterProvider } from './contexts/CharacterContext';
 import { NotepadContext, NotepadProvider } from './contexts/NotepadContext';
 import * as geminiService from './services/geminiService';
+import { getSystemPrompt } from './services/systemPromptService';
 // Autosave & storage layer
+import { defaultLlmModuleUrls, defaultModelModuleUrls, loadOptionalModules } from './services/externalModuleLoader';
 import * as ttsService from './services/ttsService'; // Import TTS Service
 import { activateToolByIntent } from './src/agent/activateTool';
 import type { Intent } from './src/agent/intent';
+import { AgentLeeBehavior } from './src/agentlee.behavior';
 import { finalizeSpokenOutput } from './src/agentlee.core'; // Use unified core sanitizer
 import images from './src/assets/images';
 import FlushPuckHost from './src/components/FlushPuckHost';
@@ -42,6 +46,7 @@ import { Autosave, buildSnapshot } from './src/lib/storage/autosave';
 import type { SavedPayload } from './src/lib/storage/types';
 import { addTurn as memAddTurn, retrieveContext as memRetrieve, upsertNote as memUpsert, proposeNoteFromRecent } from './src/memory/memoryStore';
 import OnboardingWizard, { type OnboardingPayload } from './src/onboarding/OnboardingWizard';
+import { seedLeeDocs } from './src/services/seedDocs';
 import type { AgentState, Contact, Feature, GroundingChunk, Note, NoteContent, ResearchMode, TransmissionLogEntry } from './types';
 import { parseFile } from './utils/fileParser';
 import { mdToHtml } from './utils/markdown';
@@ -156,20 +161,31 @@ declare global {
   }
 }
 
-// Local-only fetch guard
-if (USE_LOCAL_ONLY) {
+// Local-only fetch guard (runtime toggleable)
+(() => {
+    // Avoid double wrapping
+    const w = window as any;
+    if (w.__lee_fetch_wrapped) return;
     const _fetch = window.fetch;
     window.fetch = async (input, init) => {
-      const url = typeof input === 'string' ? input : (input instanceof URL ? input.href : input.url);
-      if (window.__LOCAL_ONLY__ && !(url.startsWith(location.origin) || url.startsWith('blob:') || url.startsWith('data:'))) {
-        const errorMessage = `Blocked egress in LOCAL_ONLY mode: ${url}`;
-        console.error(errorMessage);
-        throw new Error(errorMessage);
-      }
-      return _fetch(input as any, init);
+        try {
+            const url = typeof input === 'string' ? input : (input instanceof URL ? input.href : (input as any).url);
+            const isLocal = url.startsWith(location.origin) || url.startsWith('blob:') || url.startsWith('data:');
+            // Effective flag: compile-time OR runtime (localStorage/local-only toggle)
+            const runtimeLocalOnly = (localStorage.getItem('local_only') === 'true') || Boolean((window as any).__LOCAL_ONLY__);
+            const effectiveLocalOnly = USE_LOCAL_ONLY || runtimeLocalOnly;
+            if (effectiveLocalOnly && !isLocal) {
+                const errorMessage = `Blocked egress in LOCAL_ONLY mode: ${url}`;
+                console.error(errorMessage);
+                throw new Error(errorMessage);
+            }
+        } catch {
+            // fallthrough to original fetch
+        }
+        return _fetch(input as any, init);
     };
-    window.__LOCAL_ONLY__ = true;
-}
+    w.__lee_fetch_wrapped = true;
+})();
 
 
 // FIX: All state and logic have been moved into AppContent to fix scope issues.
@@ -177,7 +193,9 @@ if (USE_LOCAL_ONLY) {
 const AppContent: React.FC = () => {
     const [activeFeature, setActiveFeature] = useState<Feature>('research');
     const [promptInput, setPromptInput] = useState('');
-    const [systemInstruction, setSystemInstruction] = useState('');
+    const [systemInstruction, setSystemInstruction] = useState<string>(() => {
+        try { return getSystemPrompt(); } catch { return ''; }
+    });
     const [mediaFile, setMediaFile] = useState<File | null>(null);
     const [documentFile, setDocumentFile] = useState<File | null>(null);
 
@@ -325,7 +343,13 @@ const AppContent: React.FC = () => {
 
     // Boot Notepad OS once
     useEffect(() => {
-        memoryStore.init({ recycleDays: 7 });
+    memoryStore.init({ recycleDays: 7 });
+    // Seed Markdown docs into the LEE drive (idempotent)
+    seedLeeDocs().catch(() => {});
+    // Try to load optional browser-based LLM modules if present under /llm-modules or /models
+    // This is safe if files are missing; it will log a warning and continue.
+    const urls = [...defaultLlmModuleUrls(), ...defaultModelModuleUrls('/models')];
+    loadOptionalModules(urls).catch(() => {});
     }, []);
     const [researchMode, setResearchMode] = useState<ResearchMode>('general');
 
@@ -381,6 +405,36 @@ const AppContent: React.FC = () => {
     const [activeCharacterId, setActiveCharacterId] = useState<number | null>(null);
     // Voice controller ref (new local pipeline)
     const voiceControllerRef = useRef<any>(null);
+    
+    // Restore any previous snapshot on mount & attach network listener
+    useEffect(() => {
+        Autosave.attachNetworkListener();
+        const restored = Autosave.restore();
+        if (restored?.content && typeof restored.content === 'object') {
+            try {
+                const data: any = restored.content;
+                if (data.promptInput) setPromptInput(data.promptInput);
+                setResults((prev: typeof results) => ({
+                    ...prev,
+                    text: typeof data.text === 'string' ? data.text : prev.text,
+                    research: data.research && typeof data.research === 'object' ? data.research : prev.research,
+                    images: Array.isArray(data.images) ? data.images : prev.images,
+                    analyze: typeof data.analyze === 'string' ? data.analyze : prev.analyze,
+                    document: typeof data.document === 'string' ? data.document : prev.document,
+                }));
+                if (typeof (restored as any).content?.activeNoteId === 'number') setActiveNoteId((restored as any).content.activeNoteId);
+                console.debug('[Autosave] restored snapshot');
+            } catch (e) {
+                console.warn('[Autosave] failed to restore snapshot', e);
+            }
+        }
+    }, [setActiveNoteId]);
+
+    // Debounced snapshots when core result state changes.
+    useEffect(() => { const t = setTimeout(() => snapshotResult(activeFeature), 800); return () => clearTimeout(t); }, [results, promptInput, activeFeature, snapshotResult]);
+
+    // Snapshot when notes array changes (structure or active note changes)
+    useEffect(() => { const t = setTimeout(() => snapshotResult('notepad'), 1000); return () => clearTimeout(t); }, [notes, activeNoteId, snapshotResult]);
     
     interface TabMeta {
         id: Feature;
@@ -442,6 +496,61 @@ const AppContent: React.FC = () => {
 
         return { cleanedText, actions };
     };
+
+    // Policy: correct tool selection when LLM prose mentions wrong tools or forgets to emit actions
+    const applyToolCorrectionPolicy = (text: string, lastUserPrompt: string): { text: string; actions: AgentAction[] } => {
+        let corrected = text;
+        const actions: AgentAction[] = [];
+
+        // If the agent talks about creating images/logos/graphics, we must route to Creator (Image Studio)
+        const imageKeywords = /(logo|image|graphic|icon|banner|illustration|artwork|poster|flyer|thumbnail|favicon|cover|visual|picture)/i;
+        if (imageKeywords.test(text)) {
+            // Soft-correct prose: replace "Writer tool" with "Creator Image Studio"
+            corrected = corrected.replace(/Writer\s+tool/ig, 'Creator Image Studio');
+            corrected = corrected.replace(/Writer\s+Studio/ig, 'Creator Image Studio');
+            // Add navigate action to Creator, with follow-up prompt from the user's last request
+            const follow = lastUserPrompt?.trim() || '';
+            actions.push({ name: 'navigate', params: { tab: 'creator', followUpPrompt: follow } });
+            // If the user prompt clearly requests creation, schedule generation too
+            const createKeywords = /(create|generate|design|make|draft|produce)/i;
+            if (createKeywords.test(lastUserPrompt)) {
+                actions.push({ name: 'generate_image', params: { prompt: lastUserPrompt } });
+            }
+        }
+
+        return { text: corrected, actions };
+    };
+
+    // Router: convert high-level AssistPlan to internal actions (navigate, generate_image, say)
+    const planToActions = (plan: any, userPrompt: string): AgentAction[] => {
+        const actions: AgentAction[] = [];
+        const studioToTab: Record<string, Feature | 'hash'> = {
+            creator: 'creator',
+            imageEdit: 'creator', // editor mode lives under creator
+            writers: 'text',
+            research: 'research',
+            documentAnalyzer: 'document',
+            communication: 'call',
+            diagnostics: 'settings',
+            planner: 'text',
+            notepad: 'notepad',
+            drives: 'hash',
+            showcase: 'creator',
+        };
+        for (const step of plan.steps) {
+            if (step.say) actions.push({ name: 'say', params: { text: step.say } });
+            const tab = studioToTab[step.studio];
+            if (tab === 'hash') {
+                actions.push({ name: 'navigate_hash', params: { hash: '#/drives' } });
+            } else if (tab) {
+                actions.push({ name: 'navigate', params: { tab, followUpPrompt: userPrompt } });
+            }
+            if (step.intent.startsWith('image.generate') || step.intent.startsWith('logo.generate') || step.intent.startsWith('flyer.layout')) {
+                actions.push({ name: 'generate_image', params: { prompt: userPrompt } });
+            }
+        }
+        return actions;
+    };
     
     // NEW: Robust function to handle auto image generation
     const handleAutoImageGeneration = async (prompt: string) => {
@@ -471,42 +580,13 @@ const AppContent: React.FC = () => {
                     localStorage.setItem('agentlee:lastImageUrl', imageUrl);
                 } catch {}
                 snapshotResult('creator');
+            }
 
-
+            // Notify image creation to any listeners
             try {
                 window.dispatchEvent(new CustomEvent('creator:image:generate', { detail: { prompt, result: imageResult } }));
             } catch (dispatchError) {
                 console.warn('Failed to dispatch creator:image:generate event:', dispatchError);
-            }
-    // Restore any previous snapshot on mount & attach network listener
-    useEffect(() => {
-        Autosave.attachNetworkListener();
-        const restored = Autosave.restore();
-        if (restored?.content && typeof restored.content === 'object') {
-            try {
-                const data: any = restored.content;
-                if (data.promptInput) setPromptInput(data.promptInput);
-                setResults(prev => ({
-                    ...prev,
-                    text: typeof data.text === 'string' ? data.text : prev.text,
-                    research: data.research && typeof data.research === 'object' ? data.research : prev.research,
-                    images: Array.isArray(data.images) ? data.images : prev.images,
-                    analyze: typeof data.analyze === 'string' ? data.analyze : prev.analyze,
-                    document: typeof data.document === 'string' ? data.document : prev.document,
-                }));
-                if (typeof data.activeNoteId === 'number') setActiveNoteId(data.activeNoteId);
-                console.debug('[Autosave] restored snapshot');
-            } catch (e) {
-                console.warn('[Autosave] failed to restore snapshot', e);
-            }
-        }
-    }, [setActiveNoteId]);
-
-    // Debounced snapshots when core result state changes.
-    useEffect(() => { const t = setTimeout(() => snapshotResult(activeFeature), 800); return () => clearTimeout(t); }, [results, promptInput, activeFeature, snapshotResult]);
-
-    // Snapshot when notes array changes (structure or active note changes)
-    useEffect(() => { const t = setTimeout(() => snapshotResult('notepad'), 1000); return () => clearTimeout(t); }, [notes, activeNoteId, snapshotResult]);
             }
 
         } catch (err: any) {
@@ -523,6 +603,14 @@ const AppContent: React.FC = () => {
     const executeAgentAction = async (action: AgentAction) => {
         console.log("Executing agent action:", action);
         switch(action.name) {
+            case 'say': {
+                const text = action.params?.text as string;
+                if (text) {
+                    setAgentState('speaking');
+                    await ttsService.speak(finalizeSpokenOutput(text), () => {}, () => setAgentState('idle'));
+                }
+                return;
+            }
             case 'image.generate': {
                 if (action.params.prompt) {
                     appendToLog('SYSTEM', `[System: (tool) Generating image: "${action.params.prompt}"]`);
@@ -605,6 +693,14 @@ const AppContent: React.FC = () => {
                     }
                 }
                 break;
+            }
+            case 'navigate_hash': {
+                const hash = action.params?.hash as string;
+                if (hash) {
+                    window.location.hash = hash;
+                    appendToLog('SYSTEM', `[System: Navigating to ${hash}]`);
+                }
+                return;
             }
             case 'generate_image':
                 if (action.params.prompt) {
@@ -782,9 +878,10 @@ const AppContent: React.FC = () => {
 
         if (!isAlwaysListeningRef.current) {
             setIsAlwaysListening(true);
-            appendToLog('SYSTEM', "[System: Always-on microphone enabled. Say 'Agent Lee' to wake me.]");
+            appendToLog('SYSTEM', "[System: Always-on microphone enabled. I\'m listening.]");
             sessionModeRef.current = false;
-            wakeActiveRef.current = false;
+            // Immediately allow speech without wake word for this session
+            wakeActiveRef.current = true;
             clearSilenceTimer();
             const recognition = recognitionRef.current;
             if (recognition && agentStateRef.current === 'idle' && !isListening && !recognitionActiveRef.current) {
@@ -1003,7 +1100,20 @@ ACTIVE CHARACTER PROFILE (for consistency):
             }
             
             // Step 4: Parse actions from the full response
-            const { cleanedText, actions } = parseAgentActions(fullResponse);
+            let { cleanedText, actions } = parseAgentActions(fullResponse);
+            // High-level intent routing: compute tool chain and merge actions first
+            try {
+                const behavior = new AgentLeeBehavior();
+                const plan = behavior.plan(transcript);
+                const routed = planToActions(plan, transcript);
+                if (routed.length) actions = [...routed, ...actions];
+            } catch (e) {
+                console.warn('Routing plan failed:', e);
+            }
+            // Enforce tool policy for cases where LLM used prose instead of actions
+            const policy = applyToolCorrectionPolicy(cleanedText, transcript);
+            cleanedText = policy.text;
+            if (policy.actions.length) actions = [...actions, ...policy.actions];
             
             // Enhance with receipts + ARR mapping
             const receiptKeys: string[] = [];
@@ -1060,6 +1170,14 @@ ACTIVE CHARACTER PROFILE (for consistency):
 
 
             // Step 5: Speak the cleaned response
+            // Archive this Q/A pair into Notepad OS (LEE drive)
+            try {
+                const title = `Q: ${transcript.substring(0, 64)}…`;
+                const utterance = `USER: ${transcript}\n\nAGENT: ${cleanedText}`;
+                await memoryStore.createTask(title, { utterance, tags: ['conversation','LEE'] }, { drive: 'LEE' });
+            } catch (e) {
+                console.warn('Failed to archive conversation to LEE drive', e);
+            }
             setAgentState('speaking');
             const cleanResponseForSpeech = finalizeSpokenOutput(cleanedText);
             await ttsService.speak(
@@ -2345,6 +2463,7 @@ const App: React.FC = () => {
     return (
         <NotepadProvider>
             <CharacterProvider>
+                <OfflineBanner />
                 <AppContent />
             </CharacterProvider>
         </NotepadProvider>
