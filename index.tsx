@@ -130,7 +130,9 @@ async function renderByHash() {
       root.render(
         <React.StrictMode>
           <ErrorBoundary>
-            <Mod />
+            <React.Suspense fallback={<div>Loading…</div>}>
+              <Mod />
+            </React.Suspense>
           </ErrorBoundary>
         </React.StrictMode>
       )
@@ -140,7 +142,9 @@ async function renderByHash() {
     root.render(
       <React.StrictMode>
         <ErrorBoundary>
-          <Mod />
+          <React.Suspense fallback={<div>Loading…</div>}>
+            <Mod />
+          </React.Suspense>
         </ErrorBoundary>
       </React.StrictMode>
     )
@@ -151,7 +155,22 @@ async function renderByHash() {
     root.render(
       <React.StrictMode>
         <ErrorBoundary>
-          <Mod />
+          <React.Suspense fallback={<div>Loading…</div>}>
+            <Mod />
+          </React.Suspense>
+        </ErrorBoundary>
+      </React.StrictMode>
+    )
+    return
+  }
+  if (hash.startsWith('#/diagnostics/models')) {
+    const Mod = (await import('./src/routes/diagnostics/ModelDiagnostics')).default
+    root.render(
+      <React.StrictMode>
+        <ErrorBoundary>
+          <React.Suspense fallback={<div>Loading…</div>}>
+            <Mod />
+          </React.Suspense>
         </ErrorBoundary>
       </React.StrictMode>
     )
@@ -163,7 +182,9 @@ async function renderByHash() {
     root.render(
       <React.StrictMode>
         <ErrorBoundary>
-          <Mod />
+          <React.Suspense fallback={<div>Loading…</div>}>
+            <Mod />
+          </React.Suspense>
         </ErrorBoundary>
       </React.StrictMode>
     );

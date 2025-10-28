@@ -159,20 +159,31 @@ declare global {
   }
 }
 
-// Local-only fetch guard
-if (USE_LOCAL_ONLY) {
+// Local-only fetch guard (runtime toggleable)
+(() => {
+    // Avoid double wrapping
+    const w = window as any;
+    if (w.__lee_fetch_wrapped) return;
     const _fetch = window.fetch;
     window.fetch = async (input, init) => {
-      const url = typeof input === 'string' ? input : (input instanceof URL ? input.href : input.url);
-      if (window.__LOCAL_ONLY__ && !(url.startsWith(location.origin) || url.startsWith('blob:') || url.startsWith('data:'))) {
-        const errorMessage = `Blocked egress in LOCAL_ONLY mode: ${url}`;
-        console.error(errorMessage);
-        throw new Error(errorMessage);
-      }
-      return _fetch(input as any, init);
+        try {
+            const url = typeof input === 'string' ? input : (input instanceof URL ? input.href : (input as any).url);
+            const isLocal = url.startsWith(location.origin) || url.startsWith('blob:') || url.startsWith('data:');
+            // Effective flag: compile-time OR runtime (localStorage/local-only toggle)
+            const runtimeLocalOnly = (localStorage.getItem('local_only') === 'true') || Boolean((window as any).__LOCAL_ONLY__);
+            const effectiveLocalOnly = USE_LOCAL_ONLY || runtimeLocalOnly;
+            if (effectiveLocalOnly && !isLocal) {
+                const errorMessage = `Blocked egress in LOCAL_ONLY mode: ${url}`;
+                console.error(errorMessage);
+                throw new Error(errorMessage);
+            }
+        } catch {
+            // fallthrough to original fetch
+        }
+        return _fetch(input as any, init);
     };
-    window.__LOCAL_ONLY__ = true;
-}
+    w.__lee_fetch_wrapped = true;
+})();
 
 
 // FIX: All state and logic have been moved into AppContent to fix scope issues.

@@ -9,14 +9,26 @@ SPDX-License-Identifier: MIT
 */
 
 export async function loadOptionalModules(urls: string[]): Promise<void> {
+  const w = window as any;
+  if (!w.__agentleeModules) {
+    w.__agentleeModules = { loaded: [] as string[], failed: [] as string[] };
+  }
   const unique = Array.from(new Set(urls.filter(Boolean)));
   const loaders = unique.map((url) => new Promise<void>((resolve) => {
     const el = document.createElement('script');
     el.type = 'module';
     el.src = url;
     el.async = true;
-    el.onload = () => { console.info('[module-loader] loaded', url); resolve(); };
-    el.onerror = () => { console.warn('[module-loader] failed', url); resolve(); };
+    el.onload = () => { 
+      console.info('[module-loader] loaded', url);
+      try { w.__agentleeModules.loaded.push(url); } catch { /* noop */ }
+      resolve(); 
+    };
+    el.onerror = () => { 
+      console.warn('[module-loader] failed', url);
+      try { w.__agentleeModules.failed.push(url); } catch { /* noop */ }
+      resolve(); 
+    };
     document.head.appendChild(el);
   }));
   await Promise.allSettled(loaders);
