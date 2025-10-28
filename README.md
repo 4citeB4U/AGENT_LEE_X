@@ -71,6 +71,97 @@ Agent Lee is a central command universe with dynamic AI frames to embed external
 - “Find ‘The Harder They Fall’” → search + play
 - “Open my Play Store” → brings up store panel
 
+## Runtime Hardening + Proof (Additive)
+
+This release adds visible proof paths and safer defaults without removing any prior behavior. Highlights:
+
+- Non-blocking lazy loads with Suspense fallbacks across routes to prevent white screens.
+- Central Models Diagnostics page at `#/diagnostics/models` for quick verification.
+- Runtime Local-only egress guard you can toggle without rebuilding.
+- Wider module discovery: loads optional JS AI modules from both `public/llm-modules` and `public/models` and records results for inspection.
+- Optional local model weight download scripts (not committed to repo).
+
+These are purely additive and preserve existing UX and APIs.
+
+### Diagnostics & Proof
+
+Open the diagnostics view while the dev server is running:
+
+- URL: `http://127.0.0.1:5175/#/diagnostics/models` (or your current dev host)
+- Shows:
+	- Module loader status: lists loaded and failed module URLs sourced from `/llm-modules` and `/models`.
+	- Library sanity: attempts an import of `@xenova/transformers` in-browser.
+	- Local LLM probe: checks a lightweight `/models` index and a minimal `/v1/chat/completions` ping on your configured local endpoint.
+	- Capabilities: WebGPU and WebAssembly flags via `services/capabilities.ts`.
+	- Engine prefs snapshot: default engines and any configured `local_llm_url` / `local_llm_model`.
+	- Controls:
+		- Hard Reload (cache-bust) button to clear stale states.
+		- Toggle Local-only to flip the runtime egress guard.
+
+If a check fails, use Hard Reload first, confirm module file placement, and verify local endpoints.
+
+### Local-only Egress Guard (Runtime Toggle)
+
+- Purpose: keep traffic on-device or to your LAN-only endpoints during development or privacy-critical sessions.
+- Behavior: network calls are wrapped so that when Local-only is enabled, external egress is blocked at runtime.
+- How to toggle:
+	- Use the Diagnostics page button, or
+	- Manually set `localStorage.setItem('local_only','true')` (set to `'false'` to disable).
+- Build-time flag still respected; the runtime toggle adds convenience without rebuilds.
+
+### Module Locations (Optional JS AI Modules)
+
+- Drop browser-loadable modules into either path:
+	- `public/llm-modules/` (original location)
+	- `public/models/` (new, also scanned)
+- On startup, the loader attempts to import from both locations and records:
+	- `window.__agentleeModules.loaded`: successfully imported URLs
+	- `window.__agentleeModules.failed`: URLs that failed to import
+- The Diagnostics page surfaces these lists for quick validation.
+
+### Local Models (Optional)
+
+We provide helper scripts to fetch local model weights for browser or LAN use. Nothing is checked into the repo.
+
+- PowerShell (Windows): `scripts/Download-AIModels.ps1`
+- Bash (macOS/Linux): `scripts/download_models.sh`
+
+Guidelines:
+- Place outputs under `public/models/` unless a tool requires a different path.
+- Respect each model’s license; do not commit weights.
+- Large downloads can take time; verify free disk space first.
+
+### Cloudflare Worker Proxy (Edge)
+
+The edge Worker in `cf-proxy/` provides a policy-aware, CORS-controlled proxy for LLM backends and Gemini.
+
+Endpoints:
+- `POST /api/chat?policy=FAST|CHEAP|LONG` → forwards to `{BASE}/v1/chat/completions` with optional bearer; rate limited per IP window via KV; daily token budget heuristic to auto-downgrade to CHEAP.
+- `POST /gemini` → calls Google Generative Language API; JSON body `{ model, input }`.
+- `ANY /lightning/*` → transparent pass-through to `LIGHTNING_BASE`.
+- `GET /ops/metrics` → last health sample (ok, RTT ms) from scheduled checks.
+
+Environment and CORS (see `cf-proxy/wrangler.toml`):
+- `ALLOW_ORIGIN` — CSV of allowed Origins for CORS.
+- `LIGHTNING_BASE` — primary LLM studio/service base URL.
+- `FALLBACK_BASE` — optional secondary base.
+- `LIGHTNING_TOKEN` — bearer token (secret).
+- `GEMINI_API_KEY` — Gemini key (secret).
+- `ADMIN_WEBHOOK` — optional alert for primary failures.
+- `STATUS_KV` — KV namespace for rate limiting, budgets, and health.
+
+Health & Routing:
+- Cron samples `{BASE}/v1/models` periodically; records ok flag and RTT.
+- If primary is unhealthy and fallback is defined, traffic routes to fallback automatically.
+- CORS matches `Origin` against `ALLOW_ORIGIN` list; defaults to first entry.
+
+Deploy quickstart:
+```bash
+cd cf-proxy
+wrangler publish
+```
+Refer to `DEPLOYMENT_SETUP.md` and `DEPLOYMENT_STATUS.md` for CI-based options.
+
 ---
 
 ## Main Tools
@@ -398,6 +489,15 @@ Standards process:
 - Run `npm run leeway:audit` before PRs
 
 ---
+
+## Additional References
+
+- Diagnostics guide: [docs/DIAGNOSTICS.md](./docs/DIAGNOSTICS.md)
+- Worker details: [cf-proxy/README.md](./cf-proxy/README.md)
+- Model download helpers: [scripts/MODELS.md](./scripts/MODELS.md)
+- Readiness checklist: [docs/LEEWAY_V11_READINESS_CHECKLIST.md](./docs/LEEWAY_V11_READINESS_CHECKLIST.md)
+- System init order: [docs/SYSTEM_INIT_ORDER.md](./docs/SYSTEM_INIT_ORDER.md)
+- Routing policy: [docs/ARCH_ROUTING_POLICY.md](./docs/ARCH_ROUTING_POLICY.md)
 
 ## License & Attribution
 
