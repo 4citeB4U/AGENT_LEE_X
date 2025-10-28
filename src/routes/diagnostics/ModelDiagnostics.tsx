@@ -128,6 +128,29 @@ const ModelDiagnostics: React.FC = () => {
         {list.length === 0 ? <div className="text-gray-300">Probing...</div> : list.map(chip)}
       </Section>
 
+      <Section title="Edge self-test">
+        <button
+          className="mb-2 px-3 py-2 rounded border border-cyan-500 text-cyan-300 hover:bg-cyan-900/20"
+          onClick={async () => {
+            // Reset statuses
+            setProbe('Edge /ops/config', 'unknown');
+            setProbe('Edge /ops/metrics', 'unknown');
+            try {
+              const cfg = await fetch('/ops/config', { cache: 'no-store' });
+              setProbe('Edge /ops/config', cfg.ok ? 'ok' : 'fail', cfg.ok ? 'reachable' : String(cfg.status));
+            } catch (e:any) {
+              setProbe('Edge /ops/config', 'fail', e?.message||'error');
+            }
+            try {
+              const m = await fetch('/ops/metrics', { cache: 'no-store' });
+              setProbe('Edge /ops/metrics', m.ok ? 'ok' : 'fail', m.ok ? 'reachable' : String(m.status));
+            } catch (e:any) {
+              setProbe('Edge /ops/metrics', 'fail', e?.message||'error');
+            }
+          }}
+        >Run Self-Test</button>
+      </Section>
+
       <div className="mt-8 text-sm text-gray-300">
         <button
           className="mb-4 px-3 py-2 rounded border border-emerald-500 text-emerald-300 hover:bg-emerald-900/20"

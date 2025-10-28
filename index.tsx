@@ -176,6 +176,19 @@ async function renderByHash() {
     )
     return
   }
+  if (hash.startsWith('#/drives')) {
+    const Mod = (await import('./src/routes/library/DrivesExplorer')).default
+    root.render(
+      <React.StrictMode>
+        <ErrorBoundary>
+          <React.Suspense fallback={<div>Loading…</div>}>
+            <Mod />
+          </React.Suspense>
+        </ErrorBoundary>
+      </React.StrictMode>
+    )
+    return
+  }
   // Default: full app (lazy import so top-level module errors surface here)
   try {
     const Mod = (await import('./App')).default;

@@ -34,6 +34,7 @@ A LEEWAY-compliant, production-grade AI operating system that lives inside any d
 - [Metrics](#metrics)
 - [Contributing](#contributing)
 - [License & Attribution](#license--attribution)
+ - [OS‑level Automation (MCP)](#os‑level-automation-mcp)
 
 ---
 
@@ -161,6 +162,12 @@ cd cf-proxy
 wrangler publish
 ```
 Refer to `DEPLOYMENT_SETUP.md` and `DEPLOYMENT_STATUS.md` for CI-based options.
+
+---
+
+## OS‑level Automation (MCP)
+
+Agent Lee can integrate with open‑source MCP servers to control Android and Windows apps (list apps, launch, click/type, screenshots). See `docs/os-control-open-source.md` for an overview and integration notes. This doc is auto‑seeded into Drive LEE.
 
 ---
 

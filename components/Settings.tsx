@@ -11,6 +11,7 @@ SPDX-License-Identifier: MIT
 
 import React, { useContext, useEffect, useState } from 'react';
 import { NotepadContext } from '../contexts/NotepadContext';
+import { setLocalLlmConfig } from '../services/localLlmService';
 import * as ttsService from '../services/ttsService';
 import type { Contact, Note, TransmissionLogEntry } from '../types';
 import { mdToHtml } from '../utils/markdown';
@@ -40,6 +41,21 @@ const Settings: React.FC<SettingsProps> = ({ transmissionLog, userName }) => {
     });
     const [newContactName, setNewContactName] = useState('');
     const [newContactPhone, setNewContactPhone] = useState('');
+
+    // Engines & Keys state
+    const [localUrl, setLocalUrl] = useState<string>(() => localStorage.getItem('local_llm_url') || 'http://127.0.0.1:11434/v1');
+    const [localModel, setLocalModel] = useState<string>(() => localStorage.getItem('local_llm_model') || '');
+    const [geminiKey, setGeminiKey] = useState<string>(() => sessionStorage.getItem('gemini_api_key') || '');
+    const [openaiKey, setOpenaiKey] = useState<string>(() => sessionStorage.getItem('openai_api_key') || '');
+    const [cfToken, setCfToken] = useState<string>(() => sessionStorage.getItem('cf_api_token') || '');
+    const [keysSaved, setKeysSaved] = useState<'idle'|'saving'|'saved'|'error'>('idle');
+    const ONBOARDING_KEY = 'lee.onboard.v11';
+    const [allowMic, setAllowMic] = useState<boolean>(() => {
+        try { return Boolean(JSON.parse(localStorage.getItem(ONBOARDING_KEY)||'{}')?.consent?.mic); } catch { return false; }
+    });
+    const [allowCam, setAllowCam] = useState<boolean>(() => {
+        try { return Boolean(JSON.parse(localStorage.getItem(ONBOARDING_KEY)||'{}')?.consent?.cam); } catch { return false; }
+    });
 
 
     // State for active (saved) voice settings
@@ -388,6 +404,84 @@ const Settings: React.FC<SettingsProps> = ({ transmissionLog, userName }) => {
                             </div>
                         )) : <p className="text-center text-sm text-gray-500 py-2">No contacts saved.</p>}
                     </div>
+                </div>
+            </div>
+
+            <div className="mb-8">
+                <h3 className="text-xl font-semibold mb-3 text-gray-100">Engines & Keys</h3>
+                <p className="mb-4 text-gray-400">Configure your local LLM endpoint and optional cloud keys (stored in session only). Remote calls are blocked when Local-only is ON.</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 bg-gray-800/50 p-4 rounded-lg border border-gray-700 max-w-3xl">
+                    <div className="col-span-1 md:col-span-2">
+                        <label className="block text-sm font-medium text-gray-300">Local LLM URL</label>
+                        <input value={localUrl} onChange={e=>setLocalUrl(e.target.value)} placeholder="http://127.0.0.1:11434/v1" className="w-full p-2 border border-gray-600 rounded-md bg-gray-700 text-white" />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-300">Local LLM Model</label>
+                        <input value={localModel} onChange={e=>setLocalModel(e.target.value)} placeholder="e.g., llama3.1:8b-instruct" className="w-full p-2 border border-gray-600 rounded-md bg-gray-700 text-white" />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-300">Gemini API Key (session)</label>
+                        <input value={geminiKey} onChange={e=>setGeminiKey(e.target.value)} placeholder="AIza..." className="w-full p-2 border border-gray-600 rounded-md bg-gray-700 text-white" />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-300">OpenAI API Key (session)</label>
+                        <input value={openaiKey} onChange={e=>setOpenaiKey(e.target.value)} placeholder="sk-..." className="w-full p-2 border border-gray-600 rounded-md bg-gray-700 text-white" />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-300">Cloudflare API Token (session)</label>
+                        <input value={cfToken} onChange={e=>setCfToken(e.target.value)} placeholder="cf-..." className="w-full p-2 border border-gray-600 rounded-md bg-gray-700 text-white" />
+                    </div>
+                    <div className="flex items-end gap-3">
+                        <button onClick={() => {
+                            try {
+                              setKeysSaved('saving');
+                              // Persist local LLM config to localStorage
+                              setLocalLlmConfig(localUrl, localModel || undefined);
+                              // Session-only keys
+                              if (geminiKey) sessionStorage.setItem('gemini_api_key', geminiKey); else sessionStorage.removeItem('gemini_api_key');
+                              if (openaiKey) sessionStorage.setItem('openai_api_key', openaiKey); else sessionStorage.removeItem('openai_api_key');
+                              if (cfToken) sessionStorage.setItem('cf_api_token', cfToken); else sessionStorage.removeItem('cf_api_token');
+                              setTimeout(()=>setKeysSaved('saved'), 300);
+                              setTimeout(()=>setKeysSaved('idle'), 1500);
+                            } catch {
+                              setKeysSaved('error');
+                              setTimeout(()=>setKeysSaved('idle'), 2000);
+                            }
+                        }} className="px-4 py-2 rounded-md bg-green-600 hover:bg-green-700 text-white font-semibold">
+                            {keysSaved==='saving'?'Saving...':keysSaved==='saved'?'Saved!':'Save Config'}
+                        </button>
+                                                <button onClick={() => window.open('#/diagnostics/models', '_self')} className="px-4 py-2 rounded-md bg-indigo-600 hover:bg-indigo-700 text-white font-semibold">Open Diagnostics</button>
+                        <button onClick={() => window.open('#/drives', '_self')} className="px-4 py-2 rounded-md bg-emerald-700 hover:bg-emerald-600 text-white font-semibold">Open Library</button>
+                                                <button onClick={() => {
+                                                    import('../src/services/seedDocs').then(m => m.seedLeeDocs(true)).then(()=>{
+                                                        alert('Re-seeded documents into Drive LEE (if any were found). Open Library to view.');
+                                                    }).catch(()=>alert('Failed to re-seed documents'));
+                                                }} className="px-4 py-2 rounded-md bg-gray-700 hover:bg-gray-600 text-white font-semibold">Re-seed Docs → LEE</button>
+                    </div>
+                </div>
+            </div>
+
+            <div className="mb-8">
+                <h3 className="text-xl font-semibold mb-3 text-gray-100">Permissions</h3>
+                <p className="mb-4 text-gray-400">Grant Agent Lee access to your microphone and camera (stored locally).</p>
+                <div className="flex flex-col gap-3 max-w-3xl bg-gray-800/50 p-4 rounded-lg border border-gray-700">
+                    <label className="flex items-center gap-3 text-gray-200">
+                        <input type="checkbox" checked={allowMic} onChange={(e)=>{
+                            const rec = (()=>{ try { return JSON.parse(localStorage.getItem(ONBOARDING_KEY)||'{}'); } catch { return {}; } })();
+                            const next = { ...rec, consent: { ...(rec.consent||{}), mic: e.target.checked } };
+                            localStorage.setItem(ONBOARDING_KEY, JSON.stringify(next));
+                            setAllowMic(e.target.checked);
+                        }} /> Allow Microphone (voice conversations)
+                    </label>
+                    <label className="flex items-center gap-3 text-gray-200">
+                        <input type="checkbox" checked={allowCam} onChange={(e)=>{
+                            const rec = (()=>{ try { return JSON.parse(localStorage.getItem(ONBOARDING_KEY)||'{}'); } catch { return {}; } })();
+                            const next = { ...rec, consent: { ...(rec.consent||{}), cam: e.target.checked } };
+                            localStorage.setItem(ONBOARDING_KEY, JSON.stringify(next));
+                            setAllowCam(e.target.checked);
+                        }} /> Allow Camera (vision tools)
+                    </label>
+                    <p className="text-xs text-gray-400">Tip: Click the mic once to start voice mode; with this enabled, you can talk back and forth without clicking each time.</p>
                 </div>
             </div>
 
