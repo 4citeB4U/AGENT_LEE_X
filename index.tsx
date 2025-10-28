@@ -10,7 +10,6 @@ SPDX-License-Identifier: MIT
 
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import App from './App';
 import './src/styles/tailwind.css';
 
 // In dev, redirect /AGENT_LEE_X/* to root to avoid 404s when using prod path locally
@@ -158,14 +157,32 @@ async function renderByHash() {
     )
     return
   }
-  // Default: full app
-  root.render(
-    <React.StrictMode>
-      <ErrorBoundary>
-        <App />
-      </ErrorBoundary>
-    </React.StrictMode>
-  )
+  // Default: full app (lazy import so top-level module errors surface here)
+  try {
+    const Mod = (await import('./App')).default;
+    root.render(
+      <React.StrictMode>
+        <ErrorBoundary>
+          <Mod />
+        </ErrorBoundary>
+      </React.StrictMode>
+    );
+  } catch (e: any) {
+    console.error('Failed to load App module:', e);
+    const msg = String(e?.message || e);
+    const stack = String(e?.stack || '');
+    document.body.innerHTML = `
+      <div style="font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; background:#0b0b0b; color:#e7ffe7; min-height:100vh; padding:24px;">
+        <h1 style="color:#39FF14; margin-bottom:8px;">Agent Lee X — Bootstrap Error</h1>
+        <p>App failed to load. See console for details.</p>
+        <pre style="white-space:pre-wrap; background:#111; border:1px solid #244; padding:12px; border-radius:8px;">${msg}</pre>
+        <details style="margin-top:12px;">
+          <summary>Stack trace</summary>
+          <pre style="white-space:pre-wrap;">${stack}</pre>
+        </details>
+      </div>
+    `;
+  }
 }
 
 // Initial render and handle navigation

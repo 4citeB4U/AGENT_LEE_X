@@ -25,6 +25,7 @@ A LEEWAY-compliant, production-grade AI operating system that lives inside any d
 - [Memory & Task Recall](#memory--task-recall)
 - [Self-Promoting Intelligence](#self-promoting-intelligence)
 - [Platform Design](#platform-design)
+- [File Explorer + Drives](#file-explorer--drives)
 - [Digital Life Integration](#digital-life-integration)
 - [LeeWay Standards](#leeway-standards)
 - [Architecture & Compliance](#architecture--compliance)
@@ -125,6 +126,120 @@ Every command becomes a retrievable file. Ask months later: “the idea from Oct
 - Local memory + media for privacy
 - Hybrid voice/text interaction
 - Live windows for external apps
+
+---
+
+## File Explorer + Drives
+
+Agent Lee exposes a familiar File Explorer while retaining the full LEONARD drive model and the LEE registry. Content is addressable by two orthogonal dimensions:
+
+- Folder (human-facing, Explorer-style): HOME, GALLERY, CLOUD, DESKTOP, DOWNLOADS, DOCUMENTS, PICTURES, MUSIC, VIDEOS
+- Drive (system-facing, LEONARD): L, E, O, N, A, R, D, plus LEE (registry)
+
+Notes, plans, and artifacts are tagged with both a Drive and a Folder. Example tag: `DRIVE-R [DOCUMENTS]`.
+
+### Visual layout (sidebar)
+
+```
+📂 Agent Lee File Explorer
+│
+├── 🏠 Home
+├── 🖼 Gallery
+├── ☁ The Vision Of – Personal Cloud
+├── 💻 Desktop
+├── ⬇ Downloads
+├── 📄 Documents
+├── 🖼 Pictures
+├── 🎵 Music
+└── 🎬 Videos
+```
+
+Pinned items and separators mirror a desktop explorer. Hover states use the neon palette (NEON #39FF14, FLUO #0DFF94, Pastel #C7FFD8).
+
+### Drives (LEONARD + LEE)
+
+```
+AGENT-LEE STORAGE PLANES
+│
+├─ LEE://registry                (system registry, indices, receipts)
+│
+├─ LEONARD://l    (Drive L)      Surface UI artifacts (ui_hint, views)
+├─ LEONARD://e    (Drive E)      Evidence, logs, transcripts
+├─ LEONARD://o    (Drive O)      Operations cache, queues, buffers
+├─ LEONARD://n    (Drive N)      Nexus streams: media, comms, feeds
+├─ LEONARD://a    (Drive A)      Authoritative plans, playbooks
+├─ LEONARD://r    (Drive R)      Runbook working set, deltas
+└─ LEONARD://d    (Drive D)      Defense/outcome logs, audits
+```
+
+Path display shows both dimensions for the same artifact slug:
+
+```
+DOCUMENTS://index/my-note  ·  LEONARD://r/my-note
+LEE://registry/my-index    ·  LEONARD://a/plan-123
+```
+
+### Tagging and filtering
+
+- Drive tag: `DRIVE-L|E|O|N|A|R|D|LEE`
+- Folder token: `[HOME|GALLERY|CLOUD|DESKTOP|DOWNLOADS|DOCUMENTS|PICTURES|MUSIC|VIDEOS]`
+- Filters are intersected in UI: Drive AND Folder. Set either to “All” to widen results.
+- Legacy notes are backfilled with a default folder (HOME) by a one-time migration.
+
+### Default folder semantics
+
+- Home: central workspace/dashboard
+- Gallery: AI-generated and user images (tagging, search)
+- Cloud (The Vision Of – Personal Cloud): linked cloud sync
+- Desktop: quick files, temporary assets, active work
+- Downloads: incoming/exported assets
+- Documents: text, PDFs, manuals, reports
+- Pictures: screenshots, imported images
+- Music: narrations, recordings, sound assets
+- Videos: captured sessions, demos, clips
+
+### Developer contracts (adapters)
+
+FSAdapter (pluggable; mock in-memory provided):
+
+```ts
+type DriveKey = 'L'|'E'|'O'|'N'|'A'|'R'|'D'|'LEE';
+
+interface PutFileInput {
+	drive_key: DriveKey;
+	human_name: string;
+	type?: string;        // plan|working|ui|system|security|text|image|audio|video
+	stage?: string;       // draft|final
+	content?: unknown;    // string|json|blob reference
+	tags?: string[];      // e.g., ['DRIVE-R','[DOCUMENTS]']
+	priority?: 'low'|'normal'|'high';
+	path?: string;        // logical path within a drive
+	retention?: string;   // e.g., '14d','120d'
+	critical?: boolean;
+	next_fire_at?: string;
+}
+
+interface FSAdapter {
+	putFile(input: PutFileInput): Promise<{ id: string; drive_key: DriveKey }>;
+	linkFile?(ownerId: string, toDrive: DriveKey, targetId: string, relation: string): Promise<void>;
+}
+```
+
+The default MockFsAdapter ships in-memory and respects Drive/Folder tags. Swap in a persistent adapter (IndexedDB/Cloud) to retain data across reloads.
+
+LLMClient is optional; when injected, plans can be refined with a model-agnostic prompt.
+
+### Example artifacts
+
+```
+DRIVE-A [DOCUMENTS]  → Authoritative plan JSON (ttl 120d)
+DRIVE-R [DOCUMENTS]  → Working set deltas, status updates (ttl 14d)
+DRIVE-L [HOME]       → ui_hint for rendering the plan
+DRIVE-D [HOME]       → security/outcome log for the plan lifecycle
+LEE://registry       → index/receipt entries
+```
+
+This section is additive; it does not alter earlier behavior. The explorer view simply makes the Drive model visible and navigable for users while preserving machine semantics.
 
 ---
 

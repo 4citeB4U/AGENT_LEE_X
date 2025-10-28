@@ -45,3 +45,20 @@ export const DEFAULT_SIZE = [512, 512] as const;
  * SD-Turbo works well with very few steps.
  */
 export const DEFAULT_STEPS = 4;
+
+/** Local LLM server configuration (OpenAI-compatible).
+ * You can override via environment (VITE_LOCAL_LLM_URL / VITE_LOCAL_LLM_MODEL)
+ * or at runtime by setting in localStorage keys:
+ *   local_llm_url, local_llm_model
+ * Examples:
+ *   LM Studio:   http://127.0.0.1:1234/v1
+ *   Ollama:      http://127.0.0.1:11434/v1
+ *   llama.cpp:   http://127.0.0.1:8080/v1 (when started with --api)
+ */
+export const LOCAL_LLM_URL = (typeof window !== 'undefined' && (window as any).AGENTLEE_CONFIG?.LOCAL_LLM_URL)
+	|| (import.meta as any).env?.VITE_LOCAL_LLM_URL
+	|| 'http://127.0.0.1:11434/v1';
+
+export const LOCAL_LLM_MODEL = (typeof window !== 'undefined' && (window as any).AGENTLEE_CONFIG?.LOCAL_LLM_MODEL)
+	|| (import.meta as any).env?.VITE_LOCAL_LLM_MODEL
+	|| 'auto';

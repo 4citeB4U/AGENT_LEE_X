@@ -17,13 +17,16 @@ import HealthBadge from './components/HealthBadge';
 import InAppBrowser from './components/InAppBrowser';
 import LoadingSpinner from './components/LoadingSpinner';
 import MetallicBackground from './components/MetallicBackground';
+import OfflineBanner from './components/OfflineBanner';
 import PersistentActions from './components/PersistentActions';
 import Researcher from './components/Researcher';
 import TextGenerator from './components/TextGenerator';
 import { CharacterContext, CharacterProvider } from './contexts/CharacterContext';
 import { NotepadContext, NotepadProvider } from './contexts/NotepadContext';
 import * as geminiService from './services/geminiService';
+import { getSystemPrompt } from './services/systemPromptService';
 // Autosave & storage layer
+import { defaultLlmModuleUrls, defaultModelModuleUrls, loadOptionalModules } from './services/externalModuleLoader';
 import * as ttsService from './services/ttsService'; // Import TTS Service
 import { activateToolByIntent } from './src/agent/activateTool';
 import type { Intent } from './src/agent/intent';
@@ -177,7 +180,9 @@ if (USE_LOCAL_ONLY) {
 const AppContent: React.FC = () => {
     const [activeFeature, setActiveFeature] = useState<Feature>('research');
     const [promptInput, setPromptInput] = useState('');
-    const [systemInstruction, setSystemInstruction] = useState('');
+    const [systemInstruction, setSystemInstruction] = useState<string>(() => {
+        try { return getSystemPrompt(); } catch { return ''; }
+    });
     const [mediaFile, setMediaFile] = useState<File | null>(null);
     const [documentFile, setDocumentFile] = useState<File | null>(null);
 
@@ -325,7 +330,11 @@ const AppContent: React.FC = () => {
 
     // Boot Notepad OS once
     useEffect(() => {
-        memoryStore.init({ recycleDays: 7 });
+    memoryStore.init({ recycleDays: 7 });
+    // Try to load optional browser-based LLM modules if present under /llm-modules or /models
+    // This is safe if files are missing; it will log a warning and continue.
+    const urls = [...defaultLlmModuleUrls(), ...defaultModelModuleUrls('/models')];
+    loadOptionalModules(urls).catch(() => {});
     }, []);
     const [researchMode, setResearchMode] = useState<ResearchMode>('general');
 
@@ -2345,6 +2354,7 @@ const App: React.FC = () => {
     return (
         <NotepadProvider>
             <CharacterProvider>
+                <OfflineBanner />
                 <AppContent />
             </CharacterProvider>
         </NotepadProvider>
