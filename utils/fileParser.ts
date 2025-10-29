@@ -109,7 +109,7 @@ export const parseFile = (file: File): Promise<ParsedFile> => {
                     const zip = await JSZip.loadAsync(event.target?.result);
                     let content = `Archive contents of ${file.name}:\n\n`;
                     const fileList: string[] = [];
-                    zip.forEach((relativePath) => {
+                    zip.forEach((relativePath: string) => {
                         fileList.push(`- ${relativePath}`);
                     });
                     content += fileList.join('\n');

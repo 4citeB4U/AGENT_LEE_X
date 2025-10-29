@@ -6,7 +6,8 @@ export type StudioKey =
   | "outreach"
   | "campaign"
   | "dbl"
-  | "ta";
+  | "ta"
+  | "osc"; // OS Control
 
 export interface StudioDef {
   key: StudioKey;
@@ -101,6 +102,17 @@ export const STUDIOS: Record<StudioKey, StudioDef> = {
     icon: images.tabs.settings,
     route: "/studio/ta"
   }
+  ,
+  osc: {
+    key: "osc",
+    label: "OS Control",
+    short: "OSC",
+    tagline: "Discover and launch apps on Android & Windows.",
+    description:
+      "OS Control lists installed apps and lets you launch them locally through the MCP bridge.",
+    icon: images.tabs.settings,
+    route: "/studio/oscontrol"
+  }
 };
 
 export const DEFAULT_STUDIO_ORDER: StudioKey[] = [
@@ -111,5 +123,6 @@ export const DEFAULT_STUDIO_ORDER: StudioKey[] = [
   "outreach",
   "campaign",
   "dbl",
-  "ta"
+  "ta",
+  "osc"
 ];

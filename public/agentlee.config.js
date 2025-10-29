@@ -13,5 +13,20 @@ window.AGENTLEE_CONFIG = {
   CHAT_PROXY_URL: "",
   // Optional override for /ops/metrics endpoint; defaults to `${origin}/ops/metrics`
   OPS_METRICS_URL: "",
-  DEFAULT_POLICY: "FAST"
+  DEFAULT_POLICY: "FAST",
+  // Local OS Control bridge (Node). Keep localhost-only by default.
+  MCP_BRIDGE_URL: "http://127.0.0.1:5176",
+  // If you’re running HTTP-capable MCP servers, set these:
+  // Examples:
+  //  PHONE_MCP_HTTP_BASE: 'http://127.0.0.1:8011',
+  //  WINDOWS_MCP_HTTP_BASE: 'http://127.0.0.1:8022',
+  PHONE_MCP_HTTP_BASE: "",
+  WINDOWS_MCP_HTTP_BASE: ""
 };
+
+// Mirror into __AGENTLEE_CFG for components that read this key
+window.__AGENTLEE_CFG = Object.assign({}, window.__AGENTLEE_CFG || {}, {
+  MCP_BRIDGE_URL: window.AGENTLEE_CONFIG.MCP_BRIDGE_URL,
+  PHONE_MCP_HTTP_BASE: window.AGENTLEE_CONFIG.PHONE_MCP_HTTP_BASE,
+  WINDOWS_MCP_HTTP_BASE: window.AGENTLEE_CONFIG.WINDOWS_MCP_HTTP_BASE
+});

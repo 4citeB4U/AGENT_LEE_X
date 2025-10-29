@@ -50,15 +50,27 @@ A LEEWAY-compliant, production-grade AI operating system that lives inside any d
 
 ## Quick Start
 
-Prereqs: Node 18+, Gemini API key.
+Prereqs: Node 18+ (or newer), Chrome/Edge for WebUSB.
+
+Keys optional: The app runs local-first without API keys. If you want cloud LLMs, add keys later in Settings.
 
 ```bash
 git clone https://github.com/4citeB4U/AGENT_LEE_X.git
 cd AGENT_LEE_X
 npm install
-cp .env.example .env
-# Add your VITE_GEMINI_API_KEY to .env
+
+# Dev server only
 npm run dev
+
+# Dev server + Local MCP Bridge (recommended for OS Control)
+npm run mcp:all
+```
+
+Production build:
+
+```bash
+npm run build
+npm run preview  # serve dist/
 ```
 
 ---
@@ -167,7 +179,33 @@ Refer to `DEPLOYMENT_SETUP.md` and `DEPLOYMENT_STATUS.md` for CI-based options.
 
 ## OS‑level Automation (MCP)
 
-Agent Lee can integrate with open‑source MCP servers to control Android and Windows apps (list apps, launch, click/type, screenshots). See `docs/os-control-open-source.md` for an overview and integration notes. This doc is auto‑seeded into Drive LEE.
+Agent Lee can control Android and Windows apps via local MCP servers or direct WebUSB (Android). Features include: list/launch apps, tap/type input, and screenshots. See `docs/os-control-open-source.md` for an overview.
+
+What’s included in this repo:
+
+- Local MCP Bridge (Node/Express): `npm run mcp:bridge` (or `npm run mcp:all` to run with the dev UI)
+	- Health: GET `/healthz`
+	- Capabilities: GET `/_capabilities`
+	- Android: list/launch, tap/type, find+tap (uiautomator), screenshot
+	- Windows: list/launch, screenshot (PowerShell CopyFromScreen)
+	- HTTP‑first auto‑switch: If `PHONE_MCP_HTTP_BASE` or `WINDOWS_MCP_HTTP_BASE` is set, the bridge prefers those servers before falling back to CLI/ADB/PowerShell.
+
+- OS Control Panel UI: in the app’s studio switcher (`OS Control`)
+	- Android WebUSB mode: “Connect Android (WebUSB)” requires a Chromium browser over HTTPS or localhost
+	- Fallback to MCP Bridge if WebUSB isn’t connected
+	- Android tools: Find+Tap by text/desc, tap/type, screenshots
+	- Windows: screenshots; app listing/launch via bridge
+
+- Runtime config: `public/agentlee.config.js`
+	- `MCP_BRIDGE_URL`: e.g. `http://127.0.0.1:5176`
+	- `PHONE_MCP_HTTP_BASE`: optional HTTP MCP for Android
+	- `WINDOWS_MCP_HTTP_BASE`: optional HTTP MCP for Windows
+
+WebUSB notes:
+- Secure Context required (HTTPS or `http://localhost`)
+- Enable USB Debugging on the device
+- If another ADB client is using the device, the browser cannot claim the interface; close other ADB tools and retry
+- Chrome on iOS is not supported (it uses Safari engine)
 
 ---
 
@@ -457,11 +495,14 @@ Scripts:
 ```bash
 npm run dev
 npm run build
+npm run typecheck
 npm run leeway:audit
 npm run leeway:headers
 npm run mobile:android
 npm run mobile:ios
 npm run worker:deploy
+npm run mcp:bridge
+npm run mcp:all
 ```
 
 Standards process:
@@ -505,6 +546,7 @@ Standards process:
 - Readiness checklist: [docs/LEEWAY_V11_READINESS_CHECKLIST.md](./docs/LEEWAY_V11_READINESS_CHECKLIST.md)
 - System init order: [docs/SYSTEM_INIT_ORDER.md](./docs/SYSTEM_INIT_ORDER.md)
 - Routing policy: [docs/ARCH_ROUTING_POLICY.md](./docs/ARCH_ROUTING_POLICY.md)
+- OS Control overview: [docs/os-control-open-source.md](./docs/os-control-open-source.md)
 
 ## License & Attribution
 
