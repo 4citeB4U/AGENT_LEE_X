@@ -11,7 +11,8 @@ SPDX-License-Identifier: MIT
 import type { Chat } from '@google/genai'; // Import Chat type
 import React, { Suspense, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 // Removed AgentOutput per request
-import ApiKeyPrompt from './components/ApiKeyPrompt'; // Import API key prompt
+// ApiKeyPrompt intentionally not auto-shown; keys are optional and set in Settings
+import ApiKeyPrompt from './components/ApiKeyPrompt';
 import CameraFeed, { CameraFeedHandle } from './components/CameraFeed';
 import HealthBadge from './components/HealthBadge';
 import InAppBrowser from './components/InAppBrowser';
@@ -70,6 +71,7 @@ const Settings = React.lazy(() => import('./components/Settings'));
 const RecycleBinPanel = React.lazy(() => import('./components/RecycleBinPanel'));
 const CharacterStudio = React.lazy(() => import('./components/CharacterStudio'));
 const CreatorStudio = React.lazy(() => import('./components/ImageCharacterStudio'));
+const OSControlPanel = React.lazy(() => import('./components/OSControlPanel'));
 
 const ONBOARDING_STORAGE_KEY = 'lee.onboard.v11';
 
@@ -81,7 +83,8 @@ const STUDIO_FEATURE_MAP: Record<StudioKey, Feature> = {
     outreach: 'call',
     campaign: 'email',
     dbl: 'notepad',
-    ta: 'settings'
+    ta: 'settings',
+    osc: 'oscontrol'
 } as const;
 
 const mergePinnedOrder = (selected?: StudioKey[]): StudioKey[] => {
@@ -166,11 +169,22 @@ declare global {
     // Avoid double wrapping
     const w = window as any;
     if (w.__lee_fetch_wrapped) return;
+    // Default to local-only on first run (user can disable in Settings/console)
+    try { if (localStorage.getItem('local_only') === null) localStorage.setItem('local_only', 'true'); } catch {}
     const _fetch = window.fetch;
     window.fetch = async (input, init) => {
         try {
             const url = typeof input === 'string' ? input : (input instanceof URL ? input.href : (input as any).url);
-            const isLocal = url.startsWith(location.origin) || url.startsWith('blob:') || url.startsWith('data:');
+            let isLocal = url.startsWith(location.origin) || url.startsWith('blob:') || url.startsWith('data:');
+            // Allow localhost and 127.0.0.1 as local egress for bridges/tools
+            if (!isLocal) {
+                try {
+                    const u = new URL(url, location.href);
+                    if (u.hostname === '127.0.0.1' || u.hostname === 'localhost') {
+                        isLocal = true;
+                    }
+                } catch { /* ignore */ }
+            }
             // Effective flag: compile-time OR runtime (localStorage/local-only toggle)
             const runtimeLocalOnly = (localStorage.getItem('local_only') === 'true') || Boolean((window as any).__LOCAL_ONLY__);
             const effectiveLocalOnly = USE_LOCAL_ONLY || runtimeLocalOnly;
@@ -243,8 +257,8 @@ const AppContent: React.FC = () => {
     const [placeholderText, setPlaceholderText] = useState('Awaiting orders...');
     const [userName, setUserName] = useState<string | null>(() => localStorage.getItem('userName'));
     
-    // API Key management - check immediately on startup
-    const [showApiKeyPrompt, setShowApiKeyPrompt] = useState(() => !geminiService.hasApiKey());
+    // Keys are optional; never block onboarding/UI on missing keys
+    const [showApiKeyPrompt, setShowApiKeyPrompt] = useState(false);
     const [apiKeyError, setApiKeyError] = useState<string | null>(null);
 
     const [results, setResults] = useState({
@@ -847,11 +861,10 @@ const AppContent: React.FC = () => {
     // Check for API key errors and show prompt if needed
     const handleApiKeyError = (error: any) => {
         if (error?.message === 'MISSING_API_KEY') {
-            setShowApiKeyPrompt(true);
-            setApiKeyError('API key required to use Agent Lee');
-            return true; // Indicates error was handled
+            // Swallow silently; local model may still be loading.
+            return true;
         }
-        return false; // Let other errors bubble up
+        return false;
     };
 
     // Unified mic/send button behavior (+ alt/meta opens zoom)
@@ -1214,17 +1227,32 @@ ACTIVE CHARACTER PROFILE (for consistency):
     };
     
     const initializeChat = useCallback(() => {
-        try {
-            chatRef.current = geminiService.createChat(userName || 'Operator');
-        } catch (error: any) {
-            if (error?.message === 'MISSING_API_KEY') {
-                setShowApiKeyPrompt(true);
-                setApiKeyError('API key is required to use Agent Lee. Please enter your Google Gemini API key.');
-            } else {
-                console.error('Error initializing chat:', error);
-                setError('Failed to initialize chat service');
+        let cancelled = false;
+        const waitForLocal = async (msTotal = 10000, interval = 250) => {
+            const start = Date.now();
+            while (!cancelled && Date.now() - start < msTotal) {
+                if (geminiService.hasLocalModel()) return true;
+                await new Promise(r => setTimeout(r, interval));
             }
-        }
+            return geminiService.hasLocalModel();
+        };
+        (async () => {
+            // Wait for local model modules; do not show any modal during this period
+            await waitForLocal();
+            try {
+                if (cancelled) return;
+                chatRef.current = geminiService.createChat(userName || 'Operator');
+                setShowApiKeyPrompt(false);
+                setApiKeyError(null);
+            } catch (error: any) {
+                // If still missing API key and no local model, keep UI usable; no modal
+                if (error?.message !== 'MISSING_API_KEY') {
+                    console.error('Error initializing chat:', error);
+                    setError('Failed to initialize chat service');
+                }
+            }
+        })();
+        return () => { cancelled = true; };
     }, [userName]);
 
     // Initialize optional local voice pipeline
@@ -2175,6 +2203,8 @@ ACTIVE CHARACTER PROFILE (for consistency):
             return <AgentNotepad applyNoteToPrompt={applyNoteToPrompt} />;
           case 'settings':
             return <Settings transmissionLog={agentTransmissionLog} userName={userName || null} />;
+                    case 'oscontrol':
+                        return <OSControlPanel />;
           // FIX: Changed 'case "default"' to 'default' to correctly handle the switch statement's default case.
           default:
             return <p>Select a feature.</p>;
@@ -2427,7 +2457,7 @@ ACTIVE CHARACTER PROFILE (for consistency):
                         id={`feature-panel-${activeFeature}`}
                         role="tabpanel"
                         aria-labelledby={`feature-tab-${activeFeature}`}
-                        className={`app-content-area ${['notepad', 'call', 'email', 'settings', 'character', 'creator'].includes(activeFeature) ? 'no-surface' : ''}`}>
+                        className={`app-content-area ${['notepad', 'call', 'email', 'settings', 'character', 'creator', 'oscontrol'].includes(activeFeature) ? 'no-surface' : ''}`}>
                          <Suspense fallback={<LoadingSpinner message={`Loading ${activeFeature} module...`} />}>
                             {renderFeature()}
                         </Suspense>
