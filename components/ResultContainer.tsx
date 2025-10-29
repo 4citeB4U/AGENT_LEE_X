@@ -42,7 +42,7 @@ const ResultContainer: React.FC<ResultContainerProps> = ({ markdownContent }) =>
   };
   
   const handleShare = async () => {
-    if (navigator.share) {
+    if ('share' in navigator && typeof navigator.share === 'function') {
       try {
         await navigator.share({
           title: 'Gemini AI Result',
@@ -61,7 +61,9 @@ const ResultContainer: React.FC<ResultContainerProps> = ({ markdownContent }) =>
       <div className="flex-shrink-0 p-2 border-b border-gray-200 flex items-center justify-end gap-2 bg-gray-100/50 rounded-t-lg">
         <button onClick={handleCopy} className="text-xs text-gray-600 hover:text-black px-2 py-1 rounded bg-gray-200 hover:bg-gray-300 transition-colors">{copyStatus}</button>
         <button onClick={handleDownload} className="text-xs text-gray-600 hover:text-black px-2 py-1 rounded bg-gray-200 hover:bg-gray-300 transition-colors">Download</button>
-        {navigator.share && <button onClick={handleShare} className="text-xs text-gray-600 hover:text-black px-2 py-1 rounded bg-gray-200 hover:bg-gray-300 transition-colors">Share</button>}
+        {'share' in navigator && typeof navigator.share === 'function' && (
+          <button onClick={handleShare} className="text-xs text-gray-600 hover:text-black px-2 py-1 rounded bg-gray-200 hover:bg-gray-300 transition-colors">Share</button>
+        )}
       </div>
       <div className="p-4 sm:p-6 overflow-y-auto flex-grow">
         <div

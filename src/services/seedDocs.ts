@@ -30,14 +30,14 @@ export async function seedLeeDocs(force = false) {
 
     // Collect markdown from known locations. Only matched files are included.
     const files: Record<string, string> = {
-      // eager allows direct content values
-      ...import.meta.glob('/README.md', { as: 'raw', eager: true }) as Record<string, string>,
-      ...import.meta.glob('/README.*.md', { as: 'raw', eager: true }) as Record<string, string>,
-      ...import.meta.glob('/docs/**/*.md', { as: 'raw', eager: true }) as Record<string, string>,
-      ...import.meta.glob('/cf-proxy/README.md', { as: 'raw', eager: true }) as Record<string, string>,
-      ...import.meta.glob('/scripts/**/*.md', { as: 'raw', eager: true }) as Record<string, string>,
-      ...import.meta.glob('/DEPLOYMENT*.md', { as: 'raw', eager: true }) as Record<string, string>,
-      ...import.meta.glob('/LeeWay_Standards/**/*.md', { as: 'raw', eager: true }) as Record<string, string>,
+      // eager allows direct content values; use query/import per Vite 6 deprecation
+      ...import.meta.glob('/README.md', { query: '?raw', import: 'default', eager: true }) as Record<string, string>,
+      ...import.meta.glob('/README.*.md', { query: '?raw', import: 'default', eager: true }) as Record<string, string>,
+      ...import.meta.glob('/docs/**/*.md', { query: '?raw', import: 'default', eager: true }) as Record<string, string>,
+      ...import.meta.glob('/cf-proxy/README.md', { query: '?raw', import: 'default', eager: true }) as Record<string, string>,
+      ...import.meta.glob('/scripts/**/*.md', { query: '?raw', import: 'default', eager: true }) as Record<string, string>,
+      ...import.meta.glob('/DEPLOYMENT*.md', { query: '?raw', import: 'default', eager: true }) as Record<string, string>,
+      ...import.meta.glob('/LeeWay_Standards/**/*.md', { query: '?raw', import: 'default', eager: true }) as Record<string, string>,
     };
 
     const entries = Object.entries(files);

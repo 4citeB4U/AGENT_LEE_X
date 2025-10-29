@@ -10,13 +10,12 @@ SPDX-License-Identifier: MIT
 */
 
 import React from 'react';
-import type { GroundingChunk } from '../types';
-import ResultContainer from './ResultContainer';
-import LoadingSpinner from './LoadingSpinner';
-import ErrorMessage from './ErrorMessage';
-import { mdToHtml } from '../utils/markdown';
-import GeneratedImage from './GeneratedImage';
 import { openSmart } from '../src/nativeShell';
+import type { GroundingChunk } from '../types';
+import { mdToHtml } from '../utils/markdown';
+import ErrorMessage from './ErrorMessage';
+import GeneratedImage from './GeneratedImage';
+import LoadingSpinner from './LoadingSpinner';
 
 interface ResearcherProps {
   result: { text: string; sources: GroundingChunk[] };
@@ -36,7 +35,12 @@ const Researcher: React.FC<ResearcherProps> = ({ result, loading, error, setBrow
         {parts.map((part, index) => {
           if (index % 2 === 1) {
             const prompt = part.trim();
-            return <GeneratedImage key={`img-${index}`} prompt={prompt} />;
+            // Place key on Fragment to satisfy TS while keeping React list key semantics
+            return (
+              <div key={`img-${index}`}>
+                <GeneratedImage prompt={prompt} />
+              </div>
+            );
           }
           return (
             <div
