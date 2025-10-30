@@ -20,8 +20,8 @@ export default defineConfig(({ mode }) => {
       // Pin dev server to loopback and a stable port to avoid firewall prompts and port churn
       server: {
         host: '127.0.0.1',
-        port: 5175,
-        strictPort: true
+        port: Number(process.env.VITE_DEV_PORT || 5175),
+        strictPort: false
       },
       // Use root base in dev to avoid 404s when opening http://localhost:5173/
       // Keep GitHub Pages base in build/preview

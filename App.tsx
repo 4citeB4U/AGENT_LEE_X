@@ -462,7 +462,9 @@ const AppContent: React.FC = () => {
     const studioOrder = useMemo(() => mergePinnedOrder(onboardingRecord?.pinned), [onboardingRecord]);
 
     const studioTabs: TabMeta[] = useMemo(() => {
-        return studioOrder.map((studioKey) => {
+        // Defensive: ensure studioOrder doesn't accidentally contain duplicates
+        const uniqueOrder = Array.from(new Set(studioOrder));
+        return uniqueOrder.map((studioKey) => {
             const feature = STUDIO_FEATURE_MAP[studioKey];
             const studio = STUDIOS[studioKey];
             return {
@@ -480,7 +482,18 @@ const AppContent: React.FC = () => {
         const baseTabs: TabMeta[] = [
             { id: 'research', label: 'Research', short: 'Research', icon: images.tabs.research, pinned: false },
         ];
-        return [...baseTabs, ...studioTabs];
+
+        // Combine and dedupe final tabs by toolKey (or id) so accidental duplicates don't render.
+        const combined = [...baseTabs, ...studioTabs];
+        const seen = new Set<string>();
+        const uniqueTabs: TabMeta[] = [];
+        for (const t of combined) {
+            const dedupeKey = String(t.toolKey ?? t.id);
+            if (seen.has(dedupeKey)) continue;
+            seen.add(dedupeKey);
+            uniqueTabs.push(t);
+        }
+        return uniqueTabs;
     }, [studioTabs]);
     
     // NEW: agent action types and parsing/execution logic
@@ -2199,8 +2212,8 @@ ACTIVE CHARACTER PROFILE (for consistency):
             return <CommunicationControl userName={userName || 'the operator'} numberToCall={numberToCall} />;
           case 'email':
             return <EmailClient />;
-          case 'notepad':
-            return <AgentNotepad applyNoteToPrompt={applyNoteToPrompt} />;
+                                case 'notepad':
+                                    return <AgentNotepad applyNoteToPrompt={applyNoteToPrompt} />;
           case 'settings':
             return <Settings transmissionLog={agentTransmissionLog} userName={userName || null} />;
                     case 'oscontrol':

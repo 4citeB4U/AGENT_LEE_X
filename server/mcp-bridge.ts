@@ -12,6 +12,7 @@ import { spawn } from 'child_process';
 import cors from 'cors';
 import express, { Request, Response } from 'express';
 import fetch from 'node-fetch';
+import http from 'node:http';
 import os from 'node:os';
 import { parseStringPromise } from 'xml2js';
 
@@ -75,8 +76,8 @@ function sanitizePackage(s: string) {
 }
 
 // ---------- CONFIG / VERSION / HTTP BASES ----------
-const VERSION = '0.3.0';
-const PORT = Number(process.env.MCP_BRIDGE_PORT || 5176);
+const VERSION = '0.3.1';
+const START_PORT = Number(process.env.MCP_BRIDGE_PORT || 5176);
 const HOST = process.env.MCP_BRIDGE_HOST || '127.0.0.1';
 const PHONE_HTTP_BASE = process.env.PHONE_MCP_HTTP_BASE || '';
 const WINDOWS_HTTP_BASE = process.env.WINDOWS_MCP_HTTP_BASE || '';
@@ -317,6 +318,35 @@ $bmp.Save($ms, [System.Drawing.Imaging.ImageFormat]::Png)
 
 // Example: Additional UI automation endpoints could be added here, proxying to a local MCP server.
 
-app.listen(PORT, HOST, () => {
-  console.log(`[mcp-bridge] ${VERSION} on http://${HOST}:${PORT}`);
+// Attempt to bind, falling back to the next few ports if the preferred one is busy
+function startServer(startPort: number, tries = 5) {
+  return new Promise<void>((resolve, reject) => {
+    let port = startPort;
+    const server = http.createServer(app);
+    const onError = (err: any) => {
+      if (err?.code === 'EADDRINUSE' && tries > 1) {
+        console.warn(`[mcp-bridge] Port ${port} in use, trying ${port + 1}…`);
+        port += 1;
+        tries -= 1;
+        setTimeout(() => server.listen(port, HOST), 200);
+        return;
+      }
+      reject(err);
+    };
+    server.once('error', onError);
+    server.once('listening', () => {
+      server.removeListener('error', onError);
+      console.log(`[mcp-bridge] ${VERSION} on http://${HOST}:${port}`);
+      if (port !== startPort) {
+        console.log(`[mcp-bridge] Hint: set MCP_BRIDGE_PORT=${port} to pin this port.`);
+      }
+      resolve();
+    });
+    server.listen(port, HOST);
+  });
+}
+
+startServer(START_PORT).catch((e) => {
+  console.error(`[mcp-bridge] Failed to start:`, e?.message || e);
+  process.exit(1);
 });

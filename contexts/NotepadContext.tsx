@@ -55,7 +55,8 @@ function osToNote(item: BaseItem): Note {
     // Project content as editable text first; richer types can be handled via artifacts if needed
     const text = item.utterance || '';
     const content: NoteContent = { type: 'text', text };
-    const tag = item.tags[0] || 'CONFIDENTIAL';
+    // Preserve drive for UI filtering by encoding it in the single tag field
+    const tag = `DRIVE-${item.drive}`;
     const date = new Date(item.updated || item.created).toLocaleString();
     return { id: numericId, title: item.title, date, tag, content };
 }
@@ -71,7 +72,8 @@ export const NotepadProvider: React.FC<{ children: ReactNode }> = ({ children })
 
     // Project OS -> UI notes and maintain id maps
     const refreshFromStore = () => {
-        const items = memoryStore.list({ drive: 'R' });
+        // Show items from all drives (exclude recycled)
+        const items = memoryStore.list({ includeRecycled: false });
         const projected = items.map(osToNote);
         const numToOs = new Map<number, string>();
         const osToNum = new Map<string, number>();

@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Agent Lee — Explorer Shell Demo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+  <style>
+    :root { --green:#39FF14; --pane:#121212; }
+    body { margin:0; background:#0b0f0e; color:#e7fdf2; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial, "Apple Color Emoji", "Segoe UI Emoji"; }
+    .page { padding:18px; min-height:100dvh; box-sizing:border-box; }
+  .win-explorer { display:flex; flex-direction:column; height: calc(100dvh - 36px); background: rgba(28,28,28,0.55); -webkit-backdrop-filter: blur(14px) saturate(1.05); backdrop-filter: blur(14px) saturate(1.05); border:1px solid rgba(255,255,255,0.09); border-radius: 12px; box-shadow: 0 18px 30px rgba(0,0,0,0.35); }
+    .win-explorer__commandbar{ display:flex; align-items:center; gap:8px; padding:8px 10px; background: linear-gradient(180deg, rgba(40,40,40,.6), rgba(20,20,20,.6)); border-bottom:1px solid rgba(255,255,255,.08); }
+    .wx-btn{ display:inline-flex; align-items:center; gap:8px; padding:8px 12px; font-size:.84rem; background: rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.12); border-radius:8px; color:#E8F7F0; cursor:pointer; transition:.18s ease; }
+    .wx-btn:hover{ background: rgba(57,255,20,.22); color:#0b1f16; transform: translateY(-1px); }
+    .wx-btn.primary{ background: rgba(57,255,20,.18); border-color: rgba(57,255,20,.35); color: var(--green); }
+    .wx-btn.primary:hover{ background: rgba(57,255,20,.28); color:#0b1f16; }
+    .wx-btn.active{ outline:2px solid rgba(57,255,20,.45) }
+    .wx-group{ display:flex; gap:6px }
+    .wx-sep{ width:1px; height:26px; background:rgba(255,255,255,.08) }
+    .wx-flex-spacer{ flex:1 }
+    .win-explorer__address{ display:flex; align-items:center; gap:12px; padding:10px 14px; border-bottom:1px solid rgba(255,255,255,.08); background: linear-gradient(180deg, rgba(24,24,24,.55), rgba(16,16,16,.55)); color:#C7FFD8; }
+    .wx-breadcrumb{ display:flex; align-items:center; gap:8px; font-size:.88rem }
+    .wx-breadcrumb .crumb{ background: rgba(0,0,0,.35); padding:6px 10px; border-radius:6px; border:1px solid rgba(255,255,255,.12) }
+    .wx-breadcrumb .sep{ opacity:.5 }
+    .wx-addressbar{ flex:1; margin-left:8px; padding:6px 12px; border:1px solid rgba(255,255,255,.12); border-radius:8px; background:rgba(0,0,0,.35); color:#C7FFD8; font-size:.86rem }
+    .win-explorer__body{ display:grid; grid-template-columns: 300px 1fr; gap:14px; padding:14px; }
+    .nav-pane{ background: var(--pane); border:1px solid rgba(57,255,20,0.25); border-radius: 12px; padding:12px; }
+    .drive{ display:flex; align-items:center; gap:8px; padding:8px 10px; border-radius:8px; border:1px solid rgba(255,255,255,0.08); background: rgba(17,25,22,0.9); color:#e2f7f0; margin-bottom:8px; cursor:pointer }
+    .drive:hover{ background: rgba(57,255,20,0.12) }
+    .file-pane{ background: var(--pane); border:1px solid rgba(255,255,255,0.08); border-radius: 12px; overflow:hidden; display:flex; flex-direction:column }
+    .files-header{ display:grid; grid-template-columns: 2fr 1fr 1fr 100px; gap:8px; padding:10px 12px; font-size:.82rem; border-bottom:1px solid rgba(255,255,255,0.1); background: linear-gradient(180deg, rgba(20,20,20,.6), rgba(8,8,8,.6)); color:#c7ffd8; }
+    .files{ padding:8px 12px; overflow:auto; flex:1 }
+    .row{ display:grid; grid-template-columns: 2fr 1fr 1fr 100px; gap:8px; padding:8px; border-radius:8px; cursor:pointer }
+    .row:hover{ background: rgba(255,255,255,0.06) }
+    .row.active{ background: rgba(57,255,20,0.12); outline:1px solid rgba(57,255,20,0.35) }
+    .win-explorer__status{ display:flex; align-items:center; gap:12px; padding:8px 12px; border-top:1px solid rgba(255,255,255,.08); background: linear-gradient(0deg, rgba(24,24,24,.55), rgba(16,16,16,.55)); color:#C7FFD8; font-size:.82rem }
+    @media (max-width: 900px){ .win-explorer__body{ grid-template-columns: 1fr } }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="win-explorer">
+      <div class="win-explorer__commandbar" role="toolbar" aria-label="Explorer commands">
+        <button class="wx-btn primary"><i class="fa-solid fa-folder-plus"></i><span>New</span></button>
+        <div class="wx-sep"></div>
+        <button class="wx-btn" disabled><i class="fa-solid fa-i-cursor"></i><span>Rename</span></button>
+        <button class="wx-btn" disabled><i class="fa-regular fa-trash-can"></i><span>Delete</span></button>
+        <div class="wx-sep"></div>
+        <div class="wx-group">
+          <button class="wx-btn active"><i class="fa-solid fa-list"></i><span>Details</span></button>
+          <button class="wx-btn"><i class="fa-solid fa-table-cells-large"></i><span>Tiles</span></button>
+          <button class="wx-btn"><i class="fa-regular fa-image"></i><span>Icons</span></button>
+        </div>
+        <div class="wx-flex-spacer"></div>
+        <button class="wx-btn"><i class="fa-solid fa-arrow-up-short-wide"></i><span>Sort</span></button>
+        <button class="wx-btn"><i class="fa-solid fa-sliders"></i><span>View</span></button>
+      </div>
+      <div class="win-explorer__address">
+        <i class="fa-regular fa-hdd"></i>
+        <div class="wx-breadcrumb" role="navigation" aria-label="Breadcrumb">
+          <span class="crumb">LEONARD</span><span class="sep">›</span><span class="crumb">r/runbook-notes</span>
+        </div>
+        <div class="wx-addressbar" aria-label="Address bar">LEONARD://r/runbook-notes</div>
+      </div>
+      <div class="win-explorer__body">
+        <div class="nav-pane">
+          <div class="drive"><i class="fa-solid fa-database"></i> LEE — Registry</div>
+          <div class="drive"><i class="fa-solid fa-display"></i> L — Surface UI</div>
+          <div class="drive"><i class="fa-solid fa-database"></i> E — Evidence</div>
+          <div class="drive"><i class="fa-solid fa-gears"></i> O — Operations</div>
+          <div class="drive"><i class="fa-solid fa-compass"></i> N — Nexus</div>
+          <div class="drive"><i class="fa-solid fa-brain"></i> A — Analysis</div>
+          <div class="drive"><i class="fa-solid fa-pen-to-square"></i> R — Runbook</div>
+          <div class="drive"><i class="fa-solid fa-shield-halved"></i> D — Defense</div>
+        </div>
+        <div class="file-pane">
+          <div class="files-header">
+            <div>Name</div><div>Date modified</div><div>Type</div><div>Size</div>
+          </div>
+          <div class="files">
+            <div class="row active"><div>Incident-2025-10-29.md</div><div>Today 9:10 PM</div><div>Markdown</div><div>4 KB</div></div>
+            <div class="row"><div>Onboarding-Checklist.html</div><div>Yesterday</div><div>HTML</div><div>12 KB</div></div>
+            <div class="row"><div>Sales-Call-Script.txt</div><div>Mon</div><div>Text</div><div>2 KB</div></div>
+            <div class="row"><div>Competitive-Notes.md</div><div>Oct 25</div><div>Markdown</div><div>6 KB</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="win-explorer__status">
+        <div>4 items</div>
+        <div class="wx-flex-spacer"></div>
+        <div><i class="fa-regular fa-hard-drive"></i> Ready</div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

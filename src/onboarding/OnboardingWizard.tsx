@@ -190,7 +190,7 @@ const styles = `
 const personaOptions: Persona[] = ["Coach", "Analyst", "Producer", "Concierge"];
 const policyOptions: Policy[] = ["FAST", "CHEAP", "LONG"];
 
-const defaultPinned: StudioKey[] = ["writers", "dbl", "ta"];
+const defaultPinned: StudioKey[] = ["writers", "dbl"];
 
 function toPinnedOrder(selected: StudioKey[]): StudioKey[] {
   const seen = new Set<StudioKey>();
@@ -240,16 +240,16 @@ export default function OnboardingWizard({ onDone }: { onDone: (record?: Onboard
   const [persona, setPersona] = useState<Persona>(saved?.persona ?? "Coach");
   const [consentMic, setConsentMic] = useState(saved?.consent.mic ?? false);
   const [consentCam, setConsentCam] = useState(saved?.consent.cam ?? false);
-  const [pinned, setPinned] = useState<StudioKey[]>(saved?.pinned ?? defaultPinned);
+  const [pinned, setPinned] = useState<StudioKey[]>(toPinnedOrder(saved?.pinned ?? defaultPinned));
 
   useEffect(() => {
     if (saved) {
-      onDone(saved);
+      onDone({ ...saved, pinned: toPinnedOrder(saved.pinned) });
     }
   }, [saved, onDone]);
 
   function togglePinned(key: StudioKey) {
-    setPinned((prev) => (prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]));
+    setPinned((prev) => toPinnedOrder(prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]));
   }
 
   function finish() {

@@ -110,7 +110,8 @@ export const STUDIOS: Record<StudioKey, StudioDef> = {
     tagline: "Discover and launch apps on Android & Windows.",
     description:
       "OS Control lists installed apps and lets you launch them locally through the MCP bridge.",
-    icon: images.tabs.settings,
+    // Use a distinct icon to avoid visual duplication
+    icon: images.tabs.analyze,
     route: "/studio/oscontrol"
   }
 };
@@ -123,6 +124,5 @@ export const DEFAULT_STUDIO_ORDER: StudioKey[] = [
   "outreach",
   "campaign",
   "dbl",
-  "ta",
-  "osc"
+  "ta"
 ];
